@@ -1,10 +1,10 @@
 # Unit Testing
 Please create a new test every time you add a new non-trivial feature to the program!
 
-Unit testing for this program is facilitated by the `unittest` Python package. Unit tests should be run and verified passing before opening a pull request. Documentation of `unittest` can be found at [this Colab link](https://colab.research.google.com/github/caam37830/book/blob/master/09_computing/unittest.ipynb).
+Unit testing for this program is facilitated by the `unittest` Python package. Unit tests should be verified passing before opening a pull request. Documentation of `unittest` can be found at [this Colab link](https://colab.research.google.com/github/caam37830/book/blob/master/09_computing/unittest.ipynb).
 
 ## Usage
-To run existing tests, change directory to the root of the git repo and run `python tests.py`. The output should look something like this:
+To run existing tests manually from the command line, change directory to the root of the git repo and run `python tests.py`. The output should look something like this:
 ```
 $ python tests.py
 .
@@ -34,4 +34,8 @@ class TestSomeFeature(unittest.TestCase):
 ```
 
 ## CI
-A GitHub action to automatically run tests is currently a WIP. The tests will automatically kick off when a new pull request is opened to merge into `master`.
+A GitHub action will automatically run all the tests in tests.py when either
+1. A PR is opened to merge into the `master` branch
+2. A push is made to the `master` branch
+
+The outcome of these tests will be reported in "Conversation" section of the PR.
