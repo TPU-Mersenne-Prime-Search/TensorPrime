@@ -1,8 +1,20 @@
 # Unit Testing
-Unit testing for this program is facilitated by the `unittest` Python package. Unit tests should be run and verified passing before opening a pull request (setting this up as a GitHub action is a work in progress). An example of how this works in Colab can be found at [this example](https://colab.research.google.com/github/caam37830/book/blob/master/09_computing/unittest.ipynb).
+Please create a new test every time you add a new non-trivial feature to the program!
+
+Unit testing for this program is facilitated by the `unittest` Python package. Unit tests should be run and verified passing before opening a pull request. Documentation of `unittest` can be found at [this Colab link](https://colab.research.google.com/github/caam37830/book/blob/master/09_computing/unittest.ipynb).
 
 ## Usage
-Please create a new test every time you add a new non-trivial feature to the program. As shown in the example linked above, the `unittest` library allows the creation of a class which takes a `unittest.TestCase` object as an argument. Below is an example of the general structure of a test case.
+To run existing tests, change directory to the root of the git repo and run `python tests.py`. The output should look something like this:
+```
+$ python tests.py
+.
+----------------------------------------------------------------------
+Ran 2 tests in 0.003s
+
+OK
+```
+
+As shown in the example linked above, the `unittest` library allows the creation of a class which takes a `unittest.TestCase` object as an argument. Below is an example of the general structure of a test case. Functions defined within that class are tests which will run as part of that test case. To create a new test, add a class definition to `tests.py`, following the general format as seen below.
 
 ```
 import unittest
@@ -21,4 +33,5 @@ class TestSomeFeature(unittest.TestCase):
         self.assertTrue(some_value)
 ```
 
-To run the tests above, one can call `unittest.main()`
+## CI
+A GitHub action to automatically run tests is currently a WIP. The tests will automatically kick off when a new pull request is opened to merge into `master`.
