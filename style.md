@@ -49,7 +49,7 @@ Imports
  - Imports are grouped by Standard libraries, then third party, then local or library specific; with an empty line between each group.
 
 String quotes
- - double quotes should be used (") for lines, and single for comments (')
+ - double quotes (") should be used for code, and single (') for comments
 
 Naming conventions
  - package and module names should be short and all lowercase.
