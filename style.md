@@ -1,12 +1,11 @@
 Python Style Guide
 
-Based on python's PEP 8 style guide
-https://www.python.org/dev/peps/pep-0008/
-https://github.com/python/peps/blob/master/pep-0008.txt
+Based on python's PEP 8 style guide  
+<https://www.python.org/dev/peps/pep-0008/>  
+<https://github.com/python/peps/blob/master/pep-0008.txt>
 
-Dependency specification
-https://www.python.org/dev/peps/pep-0508/
-
+Dependency specification  
+<https://www.python.org/dev/peps/pep-0508/>
 
 
 Layout
@@ -17,20 +16,20 @@ Indentation
  - A maximum line length of 70 characters, but exceptable in cases where code would be more difficult to read if split.
  - brackets/perenthesis that are too long or nested should indent between the brackets and the items within. For multi-dimentional cases, further indenting should be added per layer.
 
-    a = [
-       12345,
-       6789
-    ]
-
-    a = [
-        [1, 2, 3],
-        [4, 5, 6]
-    ]
+       a = [
+           12345,
+           6789
+       ]
+    
+       a = [
+           [1, 2, 3],
+           [4, 5, 6]
+       ]
 
 Whitespace in expressions
  - Operations should have whitespace on both sides of every operator, using parenthesis at every transition between operator precedence. (pemdas, modulo, comparation, assignment)
 
-    x = a + (b * c / (d * e)) + f
+       x = a + (b * c / (d * e)) + f
 
  - Commas and semicolons have a one space after, but not before; excepting trailing spaces.
  - For multiline operations, the operator between the two lines should be placed at the beginning of the following line.
