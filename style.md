@@ -1,3 +1,9 @@
+Settings.txt is used to store and modify settings
+Any string starting with a dash and split with a colon is recognized as a setting,
+all other text is ignored.
+
+
+
 Python Style Guide
 
 Based on python's PEP 8 style guide  

@@ -1,0 +1,24 @@
+	Setup settings
+	(may become command line arguments)
+? Mode (factoring, )
+-Directory: data/
+-Threads: ?
+
+	PRP settings
+-Blocksize: 100
+-Bound1: ?
+-Bound2: ?
+-ProofPower: ?
+
+	Calculation settings
+-PrintIter: 
+-Timestamps: T
+Iterations between saves
+-SaveIter: 0
+Number of savefiles to keep
+-SaveCount: 12
+
+	Network settings
+-UsePrimenet: F
+? Data needed to mount a drive file? 
+
