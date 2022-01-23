@@ -1,4 +1,5 @@
 import sys
+import time as time
 
 # Benchmarking
 # import . as bench
@@ -6,7 +7,6 @@ import sys
 import mersenne.lucas as ll
 # FFT
 # import . as fft
-from PRPTest import *
 
 
 def main():
@@ -37,6 +37,16 @@ def main():
         end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
+
+
+def probable_prime(power):
+    s = 3
+    for i in range(power):
+        s *= s
+        s = s % ((1 << power) - 1)
+    if s == 9:
+        return True
+    return False
 
 
 main()
