@@ -7,7 +7,8 @@ import time as time
 import mersenne.lucas as ll
 # FFT
 # import . as fft
-
+# IBDWT
+import IBDWT as ibdwt
 
 def main():
     # Command line arguments
