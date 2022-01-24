@@ -21,16 +21,20 @@ def squaremod_with_ibdwt(num_to_square, prime_exponent, signal_length, bit_array
     if (weight_array == None):
         weight_array = determine_weight_array(prime_exponent, signal_length)
 
+    # These do the pre-square prep
     signal_to_square = signalize(num_to_square, bit_array)
     transformed_signal = weighted_transform(signal_to_square, weight_array)
     
+    # This is the squaring
     squared_transformed_signal = transformed_signal * transformed_signal
     
+    # These do the post-square processing
     squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
-    squared_signal = np.round(squared_signal)
+    rounded_signal = np.round(squared_signal)
+    squared_num = designalize(rounded_signal, bit_array)
+    final_result = int(squared_num % (2**prime_exponent - 1))
 
-    squared_num = designalize(squared_signal, bit_array)
-    return int(squared_num % (2**prime_exponent - 1))
+    return final_result
 
 # Takes the marsene exponent and signal length of the transform as ints and outputs the
 # corresponding bit_array. Should be called by main to store the bit_array outside
