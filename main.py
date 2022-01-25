@@ -9,6 +9,8 @@ import mersenne.lucas as ll
 # import . as fft
 # IBDWT
 import IBDWT as ibdwt
+# Global variables
+import config
 
 def main():
     # Command line arguments
@@ -38,6 +40,11 @@ def main():
         end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
+    
+    if args[0] == "-ibdwt":
+        config.initialize_constants(int(args[1]), int(args[2]))
+        print(config.exponent)
+        print(ibdwt.squaremod_with_ibdwt(int(args[3])))
 
 
 def probable_prime(power):
