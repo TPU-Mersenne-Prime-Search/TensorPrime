@@ -7,6 +7,7 @@ A Python notebook to search for mersenne primes using Google Colab
 
 General
  - Directory
+ - Threads
 
 PRP settings
  - Blocksize
