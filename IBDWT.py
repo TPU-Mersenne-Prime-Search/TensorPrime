@@ -106,8 +106,7 @@ def designalize(signal, bit_array = config.bit_array):
             base += bit_array[i]
     else:
         # To-Do: rig this to the TPU
-        for i in range(0, config.signal_length):
-            resultant_number = np.dot(signal, config.base_array)
+        resultant_number = np.dot(signal, config.base_array)
     
     return resultant_number
 
