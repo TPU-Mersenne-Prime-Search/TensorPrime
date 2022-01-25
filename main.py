@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--ll", action = "store_true")
     parser.add_argument("--fft",type = str, default = None)
     parser.add_argument("--bench",action = "store_true", help = "perform testing etc")
+    parser.add_argument("--prp", action="store_true", help = "Run the Probable Prime Test", default = None)
     args = vars(parser.parse_args())
     if not args["prime"]:
 	      raise ValueError("runtime requires a prime number for testing!")
@@ -39,8 +40,8 @@ def main():
     if args["fft"] is not None:
         pass
 
-    if args["prp"] is not None:
-        p = int(args["prp"])
+    if args["p"] is not None:
+        p = int(args["p"])
         start_time = time.time()
         is_probable_prime = probable_prime(p)
         end_time = time.time()
