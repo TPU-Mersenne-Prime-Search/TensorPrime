@@ -39,8 +39,8 @@ def main():
     if args["fft"] is not None:
         pass
 
-    if args["prp"] is not None:
-        p = int(args["prp"])
+    if args["prime"] is not None:
+        p = int(args["prime"])
         start_time = time.time()
         is_probable_prime = probable_prime(p)
         end_time = time.time()
