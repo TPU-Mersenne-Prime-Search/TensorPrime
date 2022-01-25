@@ -113,7 +113,7 @@ def designalize(signal, bit_array = config.bit_array):
 # Takes an array of integers to be transformed and an array corresponding to the desired
 # weighting. Outputs the weighted FFT of signal_to_transform as an array of floats.
 # To-Do: rig this to the TPU
-def weighted_transform(signal_to_transform, weight_array):
+def weighted_transform(signal_to_transform, weight_array = config.weight_array):
     weighted_signal = np.multiply(signal_to_transform, weight_array)
     transformed_weighted_signal = np.fft.fft(weighted_signal)
     return transformed_weighted_signal
@@ -123,7 +123,7 @@ def weighted_transform(signal_to_transform, weight_array):
 # the de-weighted, de-transformed signal) as an array of floats.
 # This just inverts weighted_transform().
 # To-Do: rig this to the TPU
-def inverse_weighted_transform(transformed_weighted_signal, weight_array):
+def inverse_weighted_transform(transformed_weighted_signal, weight_array = config.weight_array):
     weighted_signal = np.real(np.fft.ifft(transformed_weighted_signal))
     if (config.inverse_weight_array == None):
         signal = np.divide(weighted_signal, weight_array)
