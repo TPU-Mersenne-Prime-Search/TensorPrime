@@ -43,7 +43,6 @@ def main():
     
     if args[0] == "-ibdwt":
         config.initialize_constants(int(args[1]), int(args[2]))
-        print(config.exponent)
         print(ibdwt.squaremod_with_ibdwt(int(args[3])))
 
 

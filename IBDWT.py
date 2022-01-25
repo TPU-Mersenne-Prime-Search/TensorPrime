@@ -62,7 +62,7 @@ def squaremod_with_ibdwt(num_to_square, prime_exponent = None, signal_length = N
 # Takes the marsene exponent and signal length of the transform as ints and outputs the
 # corresponding bit_array. Should be called by main to store the bit_array outside
 # the core loop.
-def determine_bit_array(exponent, signal_length):
+def determine_bit_array(exponent = config.exponent, signal_length = config.signal_length):
     bit_array = [int(0)] * signal_length
     for i in range(1, signal_length+1):
         bit_array[i-1] = int(np.ceil((exponent * i) / signal_length) - np.ceil(exponent*(i-1) / signal_length))        
@@ -72,7 +72,7 @@ def determine_bit_array(exponent, signal_length):
 # Takes the marsene exponent and signal length of the transform as ints and outputs the
 # corresponding weight_array. Should be called by main to store the weight_array
 # outside the core loop.
-def determine_weight_array(exponent, signal_length):
+def determine_weight_array(exponent = config.exponent, signal_length = config.signal_length):
     weight_array = [int(0)] * signal_length
     for i in range(0, signal_length):
         weight_array[i] = 2 ** (np.ceil(exponent * i/signal_length) - (exponent * i/signal_length))
@@ -81,7 +81,7 @@ def determine_weight_array(exponent, signal_length):
 # Takes a number to be turned into a signal and the bit_array corresponding to the
 # bases used in the variable base representation. Returns an array of integers
 # corresponding to the coeffecients of the variable base representation of num.
-def signalize(num, bit_array):
+def signalize(num, bit_array = config.bit_array):
     signalized_num = [int(0)]*len(bit_array)
     if (config.two_to_the_bit_array == None):
         for i in range(0, len(bit_array)):
@@ -97,7 +97,7 @@ def signalize(num, bit_array):
 # Takes a signalized number and its corresponding bit_array and turns it back into an
 # integer.
 # This just inverts signalize().
-def designalize(signal, bit_array):
+def designalize(signal, bit_array = config.bit_array):
     resultant_number = 0
     if (config.base_array == None):
         base = 0
@@ -105,8 +105,9 @@ def designalize(signal, bit_array):
             resultant_number += signal[i] * (1 << base)
             base += bit_array[i]
     else:
+        # To-Do: rig this to the TPU
         for i in range(0, config.signal_length):
-            resultant_number += signal[i] * config.base_array[i]
+            resultant_number = np.dot(signal, config.base_array)
     
     return resultant_number
 
