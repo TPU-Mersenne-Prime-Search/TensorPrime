@@ -35,6 +35,7 @@ def squaremod_with_ibdwt(num_to_square, prime_exponent = None, signal_length = N
     if (prime_exponent == None or signal_length == None or num_to_square < 0):
         return -1
 
+    # If tensorflow doesn't find a TPU, this'll run on the CPU instead
     with tf.device('/TPU:0'):
 
         # Checks if bit_array or weight_array need to be made, and makes them if so
@@ -109,7 +110,7 @@ def designalize(signal, bit_array = config.bit_array):
             base += bit_array[i]
     else:
         # To-Do: rig this to the TPU
-        # Except it doesn't like the type difference when I do that >:( 
+        # Except the base array can't be converted to floats, so it can't be I think  
         resultant_number = np.dot(signal, config.base_array)
     return resultant_number
 

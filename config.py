@@ -45,12 +45,13 @@ def initialize_constants(prime_exponent, sig_length):
         base_array[i] = 2**base
         base += bit_array[i]
     
-
     weight_array = ibdwt.determine_weight_array(exponent, signal_length)
     inverse_weight_array = [0.0] * signal_length
     for i in range(0, signal_length):
         inverse_weight_array[i] = 1 / weight_array[i]
 
+    # Wrapping this in a try block lets it work on systems without a TPU; should make
+    # it easier to test locally, but might not be wanted
     try:
         resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='')
         tf.config.experimental_connect_to_cluster(resolver)
