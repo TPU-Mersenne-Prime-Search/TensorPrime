@@ -35,7 +35,7 @@ class TestProbablePrimes(unittest.TestCase):
     # Test for probable prime test correctness
     def test_prp(self):
         known_powers = [7, 13, 17, 61, 89]
-        known_composite = [6, 12, 20, 100, ]
+        known_composite = [6, 12, 20, 100, 300]
         for i in range(5):
             prime = known_powers[i]
             comp = known_composite[i]
