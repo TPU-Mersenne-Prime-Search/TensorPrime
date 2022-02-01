@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from mersenne.lucas import naive_lucas_lehmer
-from main import probable_prime
+from prptest import probable_prime
 
 # Demo class to showcase syntax for writing test cases
 
@@ -34,8 +34,8 @@ class TestProbablePrimes(unittest.TestCase):
 
     # Test for probable prime test correctness
     def test_prp(self):
-        known_powers = [19, 127, 607, 9689, 11213]
-        known_composite = [6, 38, 75, 100, 360]
+        known_powers = [7, 13, 17, 61, 89]
+        known_composite = [6, 12, 20, 100, ]
         for i in range(5):
             prime = known_powers[i]
             comp = known_composite[i]
