@@ -25,7 +25,7 @@ def main():
     # Some may share global setups
     if args[0] in ["-ibdwt", "-prp"]:
         # Pass prime power and signal length.
-        config.initialize_constants(int(args[1]), 4)
+        config.initialize_constants(int(args[1]), 128)
         
 
     if args[0] == "-bench":
