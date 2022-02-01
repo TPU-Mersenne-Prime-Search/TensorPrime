@@ -2,6 +2,9 @@
 # multiple other files
 
 # Needed to determine the bit_array and weight_array
+import numpy as np
+import tensorflow as tf
+
 import IBDWT as ibdwt
 
 # These will be provided by main() when it calls initialize_constants()
@@ -42,7 +45,15 @@ def initialize_constants(prime_exponent, sig_length):
         base_array[i] = 2**base
         base += bit_array[i]
     
+
     weight_array = ibdwt.determine_weight_array(exponent, signal_length)
     inverse_weight_array = [0.0] * signal_length
     for i in range(0, signal_length):
         inverse_weight_array[i] = 1 / weight_array[i]
+
+    try:
+        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='')
+        tf.config.experimental_connect_to_cluster(resolver)
+        tf.tpu.experimental.initialize_tpu_system(resolver)
+    except ValueError:
+        pass
