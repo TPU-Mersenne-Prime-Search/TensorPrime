@@ -3,6 +3,7 @@
 import config
 
 import numpy as np
+import tensorflow as tf
 
 # Takes the number to be squaremodded (int), the exponent of the marsene prime being
 # tested (int),
@@ -34,30 +35,31 @@ def squaremod_with_ibdwt(num_to_square, prime_exponent = None, signal_length = N
     if (prime_exponent == None or signal_length == None or num_to_square < 0):
         return -1
 
-    # Checks if bit_array or weight_array need to be made, and makes them if so
-    if (bit_array == None):
-        bit_array = determine_bit_array(prime_exponent, signal_length)
-    if (weight_array == None):
-        weight_array = determine_weight_array(prime_exponent, signal_length)
+    with tf.device('/TPU:0'):
 
-    # These do the pre-square prep
-    signal_to_square = signalize(num_to_square, bit_array)
-    transformed_signal = weighted_transform(signal_to_square, weight_array)
-    
-    # This is the squaring
-    # To-Do: rig this to the TPU
-    squared_transformed_signal = transformed_signal * transformed_signal
-    
-    # These do the post-square processing
-    squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
-    rounded_signal = np.round(squared_signal)
-    squared_num = designalize(rounded_signal, bit_array)
-    if (config.prime == None):
-        final_result = int(squared_num % (1 << (prime_exponent) - 1))
-    else:
-        final_result = int(squared_num % config.prime)
+        # Checks if bit_array or weight_array need to be made, and makes them if so
+        if (bit_array == None):
+            bit_array = determine_bit_array(prime_exponent, signal_length)
+        if (weight_array == None):
+            weight_array = determine_weight_array(prime_exponent, signal_length)
 
-    return final_result
+        # These do the pre-square prep
+        signal_to_square = signalize(num_to_square, bit_array)
+        transformed_signal = weighted_transform(signal_to_square, weight_array)
+
+        # This is the squaring
+        squared_transformed_signal = transformed_signal * transformed_signal
+
+        # These do the post-square processing
+        squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
+        rounded_signal = np.round(squared_signal).astype(int)
+        squared_num = designalize(rounded_signal, bit_array)
+        if (config.prime == None):
+            final_result = int(squared_num % (1 << (prime_exponent) - 1))
+        else:
+            final_result = int(squared_num % config.prime)
+
+        return final_result
 
 # Takes the marsene exponent and signal length of the transform as ints and outputs the
 # corresponding bit_array. Should be called by main to store the bit_array outside
@@ -82,12 +84,13 @@ def determine_weight_array(exponent = config.exponent, signal_length = config.si
 # bases used in the variable base representation. Returns an array of integers
 # corresponding to the coeffecients of the variable base representation of num.
 def signalize(num, bit_array = config.bit_array):
-    signalized_num = [int(0)]*len(bit_array)
-    if (config.two_to_the_bit_array == None):
+    if (config.two_to_the_bit_array == None):    
+        signalized_num = [int(0)]*len(bit_array)
         for i in range(0, len(bit_array)):
             signalized_num[i] = num % int(1 << bit_array[i])
             num = num // int(1 << bit_array[i])
     else:
+        signalized_num = [int(0)]*config.signal_length
         for i in range(0, config.signal_length):
             signalized_num[i] = num % config.two_to_the_bit_array[i]
             num = num // config.two_to_the_bit_array[i]
@@ -99,35 +102,33 @@ def signalize(num, bit_array = config.bit_array):
 # This just inverts signalize().
 def designalize(signal, bit_array = config.bit_array):
     resultant_number = 0
-    if (config.base_array == None):
+    if (config.base_array is None):
         base = 0
         for i in range(0,len(bit_array)):
             resultant_number += signal[i] * (1 << base)
             base += bit_array[i]
     else:
         # To-Do: rig this to the TPU
+        # Except it doesn't like the type difference when I do that >:( 
         resultant_number = np.dot(signal, config.base_array)
-    
     return resultant_number
 
 # Takes an array of integers to be transformed and an array corresponding to the desired
 # weighting. Outputs the weighted FFT of signal_to_transform as an array of floats.
-# To-Do: rig this to the TPU
 def weighted_transform(signal_to_transform, weight_array = config.weight_array):
     weighted_signal = np.multiply(signal_to_transform, weight_array)
-    transformed_weighted_signal = np.fft.fft(weighted_signal)
+    transformed_weighted_signal = tf.signal.fft(weighted_signal)
     return transformed_weighted_signal
 
 # Takes an array of integers to be inverse-transformed and an array corresponding to its
 # weighting. Outputs the inverse weighted FFT of transformed_weighted_signal (that is,
 # the de-weighted, de-transformed signal) as an array of floats.
 # This just inverts weighted_transform().
-# To-Do: rig this to the TPU
 def inverse_weighted_transform(transformed_weighted_signal, weight_array = config.weight_array):
-    weighted_signal = np.real(np.fft.ifft(transformed_weighted_signal))
+    weighted_signal = tf.math.real(tf.signal.ifft(transformed_weighted_signal))
     if (config.inverse_weight_array == None):
-        signal = np.divide(weighted_signal, weight_array)
+        signal = tf.math.divide(weighted_signal, weight_array)
     else:
-        signal = np.multiply(weighted_signal, config.inverse_weight_array)
+        signal = tf.math.multiply(weighted_signal, config.inverse_weight_array)
 
     return signal
