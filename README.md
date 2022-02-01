@@ -11,6 +11,7 @@ TODO: Add more comprehensive usage documentation in the wiki
 
 General
  - Directory
+ - Threads
 
 PRP settings
  - Blocksize
