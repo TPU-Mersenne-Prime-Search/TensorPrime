@@ -20,6 +20,13 @@ def main():
 
     # Determine which function is wanted,
     # Run relevant function
+    
+    
+    # Some may share global setups
+    if args[0] in ["-ibdwt", "-prp"]:
+        # Pass prime power and signal length.
+        config.initialize_constants(int(args[1]), 4)
+        
 
     if args[0] == "-bench":
         pass
@@ -42,15 +49,15 @@ def main():
                                                "probably prime!" if is_probable_prime else "composite"))
     
     if args[0] == "-ibdwt":
-        config.initialize_constants(int(args[1]), int(args[2]))
         print(ibdwt.squaremod_with_ibdwt(int(args[3])))
 
 
 def probable_prime(power):
     s = 3
     for i in range(power):
-        s *= s
-        s = s % ((1 << power) - 1)
+        #s *= s
+        #s = s % ((1 << power) - 1)
+        s = ibdwt.squaremod_with_ibdwt(s)
     if s == 9:
         return True
     return False
