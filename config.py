@@ -19,6 +19,10 @@ base_array = None
 weight_array = None
 inverse_weight_array = None
 
+# Constants for GEC
+EXPONENT_TO_CHECK = 5000001
+CONSTANT = 2000000
+
 def initialize_constants(prime_exponent, sig_length):
     global exponent
     global signal_length
