@@ -11,7 +11,7 @@
 -ProofPower: ?
 
 	Calculation settings
--PrintIter: 
+-PrintIter: ?
 -Timestamps: T
 Iterations between saves
 -SaveIter: 0
