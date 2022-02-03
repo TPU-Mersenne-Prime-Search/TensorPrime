@@ -1,10 +1,11 @@
-import sys
 import argparse
+import sys
 import time
 
 # Benchmarking
 # import . as bench
 # Lucas-Lehmer test
+from log_helper import init_logger
 import mersenne.lucas as ll
 # FFT
 # import . as fft
@@ -40,13 +41,15 @@ def main():
 
     # Determine which function is wanted,
     # Run relevant function
+    
+    m_logger = init_logger(args)   # logging functionality specific to our runtime
 
     if args["bench"] is not None:
         pass
 
     if args["fft"] is not None:
         pass
-
+  
     if args["prime"] is not None:
         p = int(args["prime"])
         start_time = time.time()
@@ -54,10 +57,5 @@ def main():
         end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
-
-    if args[0] == "-ibdwt":
-        config.initialize_constants(int(args[1]), int(args[2]))
-        print(ibdwt.squaremod_with_ibdwt(int(args[3])))
-
 
 main()
