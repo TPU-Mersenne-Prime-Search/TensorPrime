@@ -13,6 +13,7 @@ import mersenne.lucas as ll
 import IBDWT as ibdwt
 # PrP Test
 from prptest import probable_prime
+from prptestGEC import probable_primeGEC
 # Global variables
 import config
 
@@ -27,6 +28,7 @@ def main():
     parser.add_argument("--fft", type=str, default=None)
     parser.add_argument("--bench", action="store_true",
                         help="perform testing etc")
+    parser.add_argument("--nogec", action="store_true", default=False)
     args = vars(parser.parse_args())
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
@@ -53,7 +55,10 @@ def main():
     if args["prime"] is not None:
         p = int(args["prime"])
         start_time = time.time()
-        is_probable_prime = probable_prime(p)
+        if args["nogec"] is True:
+            is_probable_prime = probable_prime(p)
+        else:
+            is_probable_prime = probable_primeGEC(p)
         end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
