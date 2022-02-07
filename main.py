@@ -66,19 +66,4 @@ def main():
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
 
-    if args[0] == "-ibdwt":
-        print(ibdwt.squaremod_with_ibdwt(int(args["prime"])))
-
-
-def probable_prime(power):
-    s = 3
-    for i in range(power):
-        #s *= s
-        #s = s % ((1 << power) - 1)
-        s = ibdwt.squaremod_with_ibdwt(s)
-    if s == 9:
-        return True
-    return False
-
-
 main()
