@@ -27,6 +27,9 @@ def main():
     parser.add_argument("--fft", type=str, default=None)
     parser.add_argument("--bench", action="store_true",
                         help="perform testing etc")
+    parser.add_argument("--siglen", type=int, default=128,
+                       help="Power of two used as the signal length")
+    
     args = vars(parser.parse_args())
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
@@ -43,6 +46,11 @@ def main():
     # Run relevant function
     
     m_logger = init_logger(args)   # logging functionality specific to our runtime
+    
+    # Some may share global setups
+    #if args["prime"] and args["siglen"]:
+    # Pass prime power and signal length.
+    config.initialize_constants(args["prime"], args["siglen"])
 
     if args["bench"] is not None:
         pass
