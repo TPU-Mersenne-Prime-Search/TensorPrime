@@ -2,17 +2,10 @@ import argparse
 import sys
 import time
 
-# Benchmarking
-# import . as bench
-# Lucas-Lehmer test
 from log_helper import init_logger
-import mersenne.lucas as ll
-# FFT
-# import . as fft
-# IBDWT
 import IBDWT as ibdwt
-# PrP Test
 from prptest import probable_prime
+
 # Global variables
 import config
 
@@ -34,6 +27,7 @@ def main():
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
         exit()
+    print(f"Testing p={args['prime']}")
 
     # args is a dictionary in python types, in a per flag key-value mapping, which can be accessed via,
     # eg, flags["prime"], which will return the integer passed in.

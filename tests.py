@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from mersenne.lucas import naive_lucas_lehmer
 from prptest import probable_prime
 
 # Demo class to showcase syntax for writing test cases
@@ -16,18 +15,6 @@ class TestNumpyFunctionality(unittest.TestCase):
         x = np.array([2, 3])
         y = np.array([3, 2])
         self.assertEqual(12, np.dot(x, y))
-
-
-# Test known mersenne prime numbers to verify algorithms are working correctly
-class TestKnownPrimes(unittest.TestCase):
-
-    # Naive, CPU-based Lucas-Lehmer
-    def test_first_10_naive(self):
-        known_primes = pd.read_csv("known_primes.csv", sep=",")
-        for index, row in known_primes[:10].iterrows():
-            p = int(row['exponent'])
-            print("checking {}".format(p), end="\r")
-            self.assertTrue(naive_lucas_lehmer(p))
 
 
 class TestProbablePrimes(unittest.TestCase):
