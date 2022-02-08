@@ -5,7 +5,7 @@ def probable_prime(power):
     for i in range(power):
         # s *= s
         # s = s % ((1 << power) - 1)
-        ibdwt.squaremod_with_ibdwt(s)
+        s = ibdwt.squaremod_with_ibdwt(s)
     if s == 9:
         return True
     return False
