@@ -25,7 +25,7 @@ class TestProbablePrimes(unittest.TestCase):
     def test_prp(self):
         test_exponents = [(7, True), (13, True), (17, True), (61, True), (89, True), (6, False), (12, False), (20, False), (100, False), (300, False)]
         for i in range(len(test_exponents)):
-            config.initialize_constants(test_exponents[i], 2**(floor(log2(test_exponents[i]))))
+            config.initialize_constants(test_exponents[i][0], 2**(floor(log2(test_exponents[i][0]))))
             self.assertEqual(probable_prime(test_exponents[i][0]), test_exponents[i][1])
 
 
