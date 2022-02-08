@@ -2,8 +2,10 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from math import log2, floor
 
 from prptest import probable_prime
+import config
 
 # Demo class to showcase syntax for writing test cases
 
@@ -21,13 +23,10 @@ class TestProbablePrimes(unittest.TestCase):
 
     # Test for probable prime test correctness
     def test_prp(self):
-        known_powers = [7, 13, 17, 61, 89]
-        known_composite = [6, 12, 20, 100, 300]
-        for i in range(5):
-            prime = known_powers[i]
-            comp = known_composite[i]
-            self.assertTrue(probable_prime(prime))
-            self.assertFalse(probable_prime(comp))
+        test_exponents = [(7, True), (13, True), (17, True), (61, True), (89, True), (6, False), (12, False), (20, False), (100, False), (300, False)]
+        for i in range(len(test_exponents)):
+            config.initialize_constants(test_exponents[i], 2**(floor(log2(test_exponents[i]))))
+            self.assertEqual(probable_prime(test_exponents[i][0]), test_exponents[i][1])
 
 
 # Add new test classes above this comment
