@@ -54,11 +54,8 @@ def squaremod_with_ibdwt(num_to_square, prime_exponent = None, signal_length = N
         # These do the post-square processing
         squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
         rounded_signal = np.round(squared_signal).astype(int)
-        squared_num = designalize(rounded_signal, bit_array)
-        if (config.prime == None):
-            final_result = int(squared_num % (1 << (prime_exponent) - 1))
-        else:
-            final_result = int(squared_num % config.prime)
+        carried_signal = carry(rounded_signal, bit_array)
+        final_result = designalize(carried_signal, bit_array)
 
         return final_result
 
@@ -114,6 +111,35 @@ def designalize(signal, bit_array = config.bit_array):
         resultant_number = np.dot(signal, config.base_array)
     return resultant_number
 
+# Takes a signalized number and its corresponding bit_array and adjusts its digits to
+# fit the format determined by the bit array and mods it by the prime being tested.
+def carry(signal, bit_array = config.bit_array):    
+    # This runs through the signal once, checks for any digits the need to carry forward,
+    # and carries it forward
+    carry = 0
+    for i in range(0, config.signal_length):
+        max = 2**config.bit_array[i]
+        signal[i] += carry
+        carry = signal[i] // max
+        signal[i] %= max
+
+    # It's possible that the highest digit had to carry over; due to the math behind
+    # the bit array, we can deal with this (and get a free mod operation) by just adding
+    # it to the lowest order digit and then propogating the carry (if it exists) through 
+    # again until there's no longer a high digit carry
+    i = 0
+    while carry != 0:
+        max = 2**config.bit_array[i % config.signal_length]
+        signal[i % config.signal_length] += carry
+        if signal[i % config.signal_length] >= max:
+            carry = signal[i % config.signal_length] // max
+            signal[i % config.signal_length] %= max
+            i += 1
+        else:
+            carry = 0
+
+    return signal
+    
 # Takes an array of integers to be transformed and an array corresponding to the desired
 # weighting. Outputs the weighted FFT of signal_to_transform as an array of floats.
 def weighted_transform(signal_to_transform, weight_array = config.weight_array):
