@@ -22,11 +22,17 @@ class TestNumpyFunctionality(unittest.TestCase):
 class TestProbablePrimes(unittest.TestCase):
 
     # Test for probable prime test correctness
-    def test_prp(self):
-        test_exponents = [(7, True), (13, True), (17, True), (61, True), (89, True), (6, False), (12, False), (20, False), (100, False), (300, False)]
+    def test_prp_primes(self):
+        test_exponents = [7, 13, 17, 61, 89]
         for i in range(len(test_exponents)):
-            config.initialize_constants(test_exponents[i][0], 2**(floor(log2(test_exponents[i][0]))))
-            self.assertEqual(probable_prime(test_exponents[i][0]), test_exponents[i][1])
+            config.initialize_constants(test_exponents[i], 2**(floor(log2(test_exponents[i]))))
+            self.assertEqual(probable_prime(test_exponents[i]), True)
+    
+    def test_prp_composites(self):
+        test_exponents = [6, 12, 20, 100, 300]
+        for i in range(len(test_exponents)):
+            config.initialize_constants(test_exponents[i], 2**(floor(log2(test_exponents[i]))))
+            self.assertEqual(probable_prime(test_exponents[i]), False)
 
 
 # Add new test classes above this comment
