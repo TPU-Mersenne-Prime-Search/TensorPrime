@@ -12,8 +12,8 @@ def probable_prime(power):
         if config.GEC_enabled:
             # Every L iterations, update d and prev_d
             if i != 0 and i % L == 0:
-                prev_d = d
-                d = (d * s) % n
+                gerbicz.prev_d = d
+                gerbicz.d = (d * s) % n
             # Every L^2 iterations, check the current d value with and independently calculated d
             if (i != 0 and i % L_2 == 0) or (i+ L > power):
                 check_value = (3 * (prev_d ** (2 ** L))) % n
