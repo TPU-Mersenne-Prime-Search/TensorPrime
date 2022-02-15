@@ -51,14 +51,14 @@ def main():
 
     if args["fft"] is not None:
         pass
+
+    if args["nogec"] is False:
+        config.GEC_enabled = True
   
     if args["prime"] is not None:
         p = int(args["prime"])
         start_time = time.time()
-        if args["nogec"] is True:
-            is_probable_prime = probable_prime(p)
-        else:
-            is_probable_prime = probable_primeGEC(p)
+        probable_primeGEC(p)
         end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
