@@ -1,4 +1,5 @@
 import config
+import gerbicz
 from gerbicz import update_gec_save, rollback
 import IBDWT as ibdwt
 
