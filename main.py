@@ -58,7 +58,7 @@ def main():
     if args["prime"] is not None:
         p = int(args["prime"])
         start_time = time.time()
-        probable_primeGEC(p)
+        is_probable_prime = probable_prime(p)
         end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
