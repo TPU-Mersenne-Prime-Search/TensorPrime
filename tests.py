@@ -41,7 +41,7 @@ class TestProbablePrimes(unittest.TestCase):
 class TestIBDWT(unittest.TestCase):
 
     # Test the implementation of the IBDWT for correctness
-    def first_ibdwt_test(self):
+    def test_ibdwt_one(self):
         num_to_square = 78314567209
         test_exponent = 37
         config.initialize_constants(
@@ -49,7 +49,7 @@ class TestIBDWT(unittest.TestCase):
         self.assertEqual(IBDWT.squaremod_with_ibdwt(
             num_to_square, test_exponent), 58368107274)
 
-    def second_ibdwt_test(self):
+    def test_ibdwt_two(self):
         num_to_square = 459278345
         test_exponent = 96
         config.initialize_constants(
@@ -57,7 +57,7 @@ class TestIBDWT(unittest.TestCase):
         self.assertEqual(IBDWT.squaremod_with_ibdwt(
             num_to_square, test_exponent), 210936598185939025)
 
-    def third_ibdwt_test(self):
+    def test_ibdwt_three(self):
         num_to_square = 243897520394875
         test_exponent = 67
         config.initialize_constants(
