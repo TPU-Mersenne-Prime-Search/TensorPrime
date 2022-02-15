@@ -54,6 +54,7 @@ def main():
 
     if args["nogec"] is False:
         config.GEC_enabled = True
+    print(f"Gerbicz error checking is {'enabled' if config.GEC_enabled else 'disabled'}")
   
     if args["prime"] is not None:
         p = int(args["prime"])
