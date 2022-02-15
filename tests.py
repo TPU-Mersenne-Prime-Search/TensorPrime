@@ -5,7 +5,7 @@ import pandas as pd
 from math import log2, floor
 
 from prptest import probable_prime
-from IBDWT import squaremod_with_ibdwt
+import IBDWT
 import config
 
 # Demo class to showcase syntax for writing test cases
@@ -46,7 +46,7 @@ class TestIBDWT(unittest.TestCase):
         test_exponent = 37
         config.initialize_constants(
             test_exponent, 2**(floor(log2(test_exponent))))
-        self.assertEqual(squaremod_with_ibdwt(
+        self.assertEqual(IBDWT.squaremod_with_ibdwt(
             num_to_square, test_exponent), 58368107274)
 
 
