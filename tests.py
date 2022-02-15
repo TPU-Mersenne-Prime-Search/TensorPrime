@@ -5,6 +5,7 @@ import pandas as pd
 from math import log2, floor
 
 from prptest import probable_prime
+from IBDWT import squaremod_with_ibdwt
 import config
 
 # Demo class to showcase syntax for writing test cases
@@ -25,14 +26,28 @@ class TestProbablePrimes(unittest.TestCase):
     def test_prp_primes(self):
         test_exponents = [7, 13, 17, 61, 89]
         for i in range(len(test_exponents)):
-            config.initialize_constants(test_exponents[i], 2**(floor(log2(test_exponents[i]))))
+            config.initialize_constants(
+                test_exponents[i], 2**(floor(log2(test_exponents[i]))))
             self.assertEqual(probable_prime(test_exponents[i]), True)
-    
+
     def test_prp_composites(self):
         test_exponents = [6, 12, 20, 100, 300]
         for i in range(len(test_exponents)):
-            config.initialize_constants(test_exponents[i], 2**(floor(log2(test_exponents[i]))))
+            config.initialize_constants(
+                test_exponents[i], 2**(floor(log2(test_exponents[i]))))
             self.assertEqual(probable_prime(test_exponents[i]), False)
+
+
+class TestIBDWT(unittest.TestCase):
+
+    # Test the implementation of the IBDWT for correctness
+    def first_ibdwt_test(self):
+        num_to_square = 78314567209
+        test_exponent = 37
+        config.initialize_constants(
+            test_exponent, 2**(floor(log2(test_exponent))))
+        self.assertEqual(squaremod_with_ibdwt(
+            num_to_square, test_exponent), 58368107274)
 
 
 # Add new test classes above this comment
