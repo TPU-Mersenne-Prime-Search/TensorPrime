@@ -1,5 +1,7 @@
 import config
 from gerbicz import update_gec_save, rollback
+import IBDWT as ibdwt
+
 
 def probable_prime(power):
     L = config.GEC_iterations
@@ -19,8 +21,9 @@ def probable_prime(power):
                     i, s = rollback()
                 else:
                     update_gec_save(i, s)
-        s *= s
-        s = s % ((1 << power) - 1)
+        # s *= s
+        # s = s % ((1 << power) - 1)
+        s = ibdwt.squaremod_with_ibdwt(s)
     if s == 9:
         return True
     return False

@@ -2,18 +2,10 @@ import argparse
 import sys
 import time
 
-# Benchmarking
-# import . as bench
-# Lucas-Lehmer test
 from log_helper import init_logger
-import mersenne.lucas as ll
-# FFT
-# import . as fft
-# IBDWT
 import IBDWT as ibdwt
-# PrP Test
 from prptest import probable_prime
-from prptestGEC import probable_primeGEC
+
 # Global variables
 import config
 
@@ -28,11 +20,17 @@ def main():
     parser.add_argument("--fft", type=str, default=None)
     parser.add_argument("--bench", action="store_true",
                         help="perform testing etc")
+
     parser.add_argument("--nogec", action="store_true", default=False)
+
+    parser.add_argument("--siglen", type=int, default=128,
+                       help="Power of two used as the signal length")
+ 
     args = vars(parser.parse_args())
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
         exit()
+    print(f"Testing p={args['prime']}")
 
     # args is a dictionary in python types, in a per flag key-value mapping, which can be accessed via,
     # eg, flags["prime"], which will return the integer passed in.
@@ -45,6 +43,11 @@ def main():
     # Run relevant function
     
     m_logger = init_logger(args)   # logging functionality specific to our runtime
+    
+    # Some may share global setups
+    #if args["prime"] and args["siglen"]:
+    # Pass prime power and signal length.
+    config.initialize_constants(args["prime"], args["siglen"])
 
     if args["bench"] is not None:
         pass
