@@ -1,10 +1,10 @@
 import config
 
 s_saved = 3
-i_saved = 0
+i_saved = 3
 
 d = 3
-prev_d = None
+prev_d = 3
 
 def rollback():
     return i_saved, s_saved
