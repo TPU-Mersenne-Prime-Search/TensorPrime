@@ -2,9 +2,10 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from math import log2, floor
 
-from mersenne.lucas import naive_lucas_lehmer
 from prptest import probable_prime
+import config
 
 # Demo class to showcase syntax for writing test cases
 
@@ -18,29 +19,20 @@ class TestNumpyFunctionality(unittest.TestCase):
         self.assertEqual(12, np.dot(x, y))
 
 
-# Test known mersenne prime numbers to verify algorithms are working correctly
-class TestKnownPrimes(unittest.TestCase):
-
-    # Naive, CPU-based Lucas-Lehmer
-    def test_first_10_naive(self):
-        known_primes = pd.read_csv("known_primes.csv", sep=",")
-        for index, row in known_primes[:10].iterrows():
-            p = int(row['exponent'])
-            print("checking {}".format(p), end="\r")
-            self.assertTrue(naive_lucas_lehmer(p))
-
-
 class TestProbablePrimes(unittest.TestCase):
 
     # Test for probable prime test correctness
-    def test_prp(self):
-        known_powers = [7, 13, 17, 61, 89]
-        known_composite = [6, 12, 20, 100, 300]
-        for i in range(5):
-            prime = known_powers[i]
-            comp = known_composite[i]
-            self.assertTrue(probable_prime(prime))
-            self.assertFalse(probable_prime(comp))
+    def test_prp_primes(self):
+        test_exponents = [7, 13, 17, 61, 89]
+        for i in range(len(test_exponents)):
+            config.initialize_constants(test_exponents[i], 2**(floor(log2(test_exponents[i]))))
+            self.assertEqual(probable_prime(test_exponents[i]), True)
+    
+    def test_prp_composites(self):
+        test_exponents = [6, 12, 20, 100, 300]
+        for i in range(len(test_exponents)):
+            config.initialize_constants(test_exponents[i], 2**(floor(log2(test_exponents[i]))))
+            self.assertEqual(probable_prime(test_exponents[i]), False)
 
 
 # Add new test classes above this comment
