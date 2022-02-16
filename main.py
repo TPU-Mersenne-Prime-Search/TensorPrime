@@ -11,6 +11,7 @@ import config
 
 
 def main():
+    print("Starting TensorPrime")
     parser = argparse.ArgumentParser()
 
     # in order to add more arguments to the parser, attempt a similar declaration to below. Anthing without a dash is becomes ordinal and required
@@ -54,6 +55,7 @@ def main():
   
     if args["prime"] is not None:
         p = int(args["prime"])
+        print("Starting Probable Prime Test.")
         start_time = time.time()
         is_probable_prime = probable_prime(p)
         end_time = time.time()

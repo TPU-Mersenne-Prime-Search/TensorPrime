@@ -1,6 +1,8 @@
 # This module is for holding the global variables that need to be accessed by
 # multiple other files
 
+import time
+
 # Needed to determine the bit_array and weight_array
 import numpy as np
 import tensorflow as tf
@@ -33,6 +35,9 @@ def initialize_constants(prime_exponent, sig_length):
     signal_length = sig_length
     
     prime = 2 ** exponent - 1
+
+    # Check time of IBDWT array initialization
+    array_start = time.time()
     
     bit_array = ibdwt.determine_bit_array(exponent, signal_length)
     two_to_the_bit_array = [int(0)] * signal_length
@@ -50,11 +55,24 @@ def initialize_constants(prime_exponent, sig_length):
     for i in range(0, signal_length):
         inverse_weight_array[i] = 1 / weight_array[i]
 
+    # Check time after array initialization
+    array_end = time.time()
+    # Get total array initialization time
+    array_time = array_end - array_start
+    print("IBDWT arrays initialized in ", array_time, " seconds.")
+
     # Wrapping this in a try block lets it work on systems without a TPU; should make
     # it easier to test locally, but might not be wanted
     try:
+        print("Configuring TPU...")
+        config_start = time.time()
         resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='')
         tf.config.experimental_connect_to_cluster(resolver)
         tf.tpu.experimental.initialize_tpu_system(resolver)
+        config_end = time.time()
+        config_time = config_end - config_start
+        print("TPU configuration complete.")
+        print("Total time: ", config_time)
+        print()
     except ValueError:
         pass
