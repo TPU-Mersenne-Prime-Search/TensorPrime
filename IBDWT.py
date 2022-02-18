@@ -59,6 +59,47 @@ def squaremod_with_ibdwt(num_to_square, prime_exponent = None, signal_length = N
 
         return final_result
 
+def multmod_with_ibdwt(num1, num2, prime_exponent = None, signal_length = None, 
+                         bit_array = None, weight_array = None):
+    
+    if prime_exponent is None:
+        prime_exponent = config.exponent    
+    if signal_length is None:
+        signal_length = config.signal_length
+    if bit_array is None:
+        bit_array = config.bit_array
+    if weight_array is None:
+        weight_array = config.weight_array
+
+    if (prime_exponent == None or signal_length == None or num1 < 0 or num2 < 0):
+        return -1
+
+    # If tensorflow doesn't find a TPU, this'll run on the CPU instead
+    with tf.device('/TPU:0'):
+
+        # Checks if bit_array or weight_array need to be made, and makes them if so
+        if (bit_array == None):
+            bit_array = determine_bit_array(prime_exponent, signal_length)
+        if (weight_array == None):
+            weight_array = determine_weight_array(prime_exponent, signal_length)
+
+        # These do the pre-square prep
+        signal1 = signalize(num1, bit_array)
+        signal2 = signalize(num2, bit_array)
+        transformed_signal1 = weighted_transform(signal1, weight_array)
+        transformed_signal2 = weighted_transform(signal2, weight_array)
+
+        # This is the squaring
+        multiplied_transformed_signal = transformed_signal1 * transformed_signal2
+
+        # These do the post-square processing
+        multiplied_signal = inverse_weighted_transform(multiplied_transformed_signal, weight_array)
+        rounded_signal = np.round(multiplied_signal).astype(int)
+        carried_signal = carry(rounded_signal, bit_array)
+        final_result = designalize(carried_signal, bit_array)
+
+        return final_result
+
 # Takes the marsene exponent and signal length of the transform as ints and outputs the
 # corresponding bit_array. Should be called by main to store the bit_array outside
 # the core loop.
