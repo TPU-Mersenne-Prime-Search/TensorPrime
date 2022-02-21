@@ -5,8 +5,12 @@ import IBDWT as ibdwt
 
 
 def probable_prime(power):
-    L = config.GEC_iterations
-    L_2 = L*L
+    if config.GEC_enabled:
+        L = config.GEC_iterations
+        L_2 = L*L
+        d = 3
+        prev_d = 3
+        n = 2 ** power - 1
 
     s = 3
     for i in range(power):
