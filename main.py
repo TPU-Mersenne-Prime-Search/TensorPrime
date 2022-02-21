@@ -7,12 +7,15 @@ import IBDWT as ibdwt
 from prptest import probable_prime
 
 # Global variables
+import saveload
 import config
 
 
 def main():
     print("Starting TensorPrime")
     parser = argparse.ArgumentParser()
+    
+    config.getSettings()
 
     # in order to add more arguments to the parser, attempt a similar declaration to below. Anthing without a dash is becomes ordinal and required
     parser.add_argument("-p", "--prime", type=int,
@@ -23,8 +26,14 @@ def main():
                         help="perform testing etc")
     parser.add_argument("--siglen", type=int, default=128,
                        help="Power of two used as the signal length")
+    parser.add_argument("-r", "--resume", action="store_true")
     
     args = vars(parser.parse_args())
+    
+    # Get values from memory
+    if args["resume"] or config.settings["AutoResume"]:
+        saveload.load()
+        
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
         exit()

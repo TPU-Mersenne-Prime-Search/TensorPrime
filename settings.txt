@@ -5,18 +5,18 @@
 -Threads: ?
 
 	PRP settings
--Blocksize: 100
+-Blocksize: 100i
 -Bound1: ?
 -Bound2: ?
 -ProofPower: ?
 
 	Calculation settings
--PrintIter: ?
+-PrintIter: 100i
 -Timestamps: T
 Iterations between saves
--SaveIter: 0
+-SaveIter: 5i
 Number of savefiles to keep
--SaveCount: 12
+-SaveCount: 10i
 
 	Network settings
 -UsePrimenet: F
