@@ -24,7 +24,7 @@ def probable_prime(power):
                     update_gec_save(i, s)
         # s *= s
         # s = s % ((1 << power) - 1)
-        s = ibdwt.squaremod_with_ibdwt(s)
+        s = ibdwt.multmod_with_ibdwt(s,s)
     if s == 9:
         return True
     return False
