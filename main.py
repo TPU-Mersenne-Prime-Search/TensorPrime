@@ -31,8 +31,15 @@ def main():
     args = vars(parser.parse_args())
     
     # Get values from memory
+    # This WILL override the siglen given from arguments.
     if args["resume"] or config.settings["AutoResume"]:
-        saveload.load()
+        preval = saveload.load()
+        if preval != None:
+            args.update(preval)
+        else:
+            args["resume"] = False
+    else:
+        args["resume"] = False
         
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
@@ -65,8 +72,16 @@ def main():
     if args["prime"] is not None:
         p = int(args["prime"])
         print("Starting Probable Prime Test.")
+        
+        
         start_time = time.time()
-        is_probable_prime = probable_prime(p)
+        is_probable_prime = None
+        # Resume
+        if args["resume"]:
+            print("Resuming at iteration", args["iteration"])
+            is_probable_prime = probable_prime(p, startPos=args["iteration"], s=args["signal"])
+        else:
+            is_probable_prime = probable_prime(p)
         end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))

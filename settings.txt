@@ -3,6 +3,7 @@
 ? Mode (factoring, )
 -Directory: data/
 -Threads: ?
+-AutoResume: F
 
 	PRP settings
 -Blocksize: 100i
@@ -14,7 +15,7 @@
 -PrintIter: 100i
 -Timestamps: T
 Iterations between saves
--SaveIter: 5i
+-SaveIter: 200i
 Number of savefiles to keep
 -SaveCount: 10i
 
