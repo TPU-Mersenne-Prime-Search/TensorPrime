@@ -16,12 +16,10 @@ def probable_prime(power, startPos=0, s=3):
     
     for i in range(startPos, power):
     
-        #Iterate counters
-        saveIcount -= 1
-    
         if saveIcount == 0:
             saveload.save(s, i)
             saveIcount = saveIter
+            print(i)
         # s *= s
         # s = s % ((1 << power) - 1)
         s = ibdwt.squaremod_with_ibdwt(s)
@@ -31,10 +29,10 @@ def probable_prime(power, startPos=0, s=3):
                 time_elapsed = time.time() - start
                 print("Time elapsed at iteration ", i, ": ", time_elapsed, ". S = ", s)
                 printIcount = printIter
-            else:
-                printIcount -= 1
+            printIcount -= 1
             
-        
+        #Iterate counters
+        saveIcount -= 1
             
     if s == 9:
         return True
