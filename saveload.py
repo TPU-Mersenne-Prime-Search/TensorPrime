@@ -58,10 +58,10 @@ def load():
     # and NOT from the save.
     # This is not handled.
     
-    exponent = filedat[0]
-    signal_length = filedat[1]
-    iteration = filedat[2]
-    signal = filedat[3]
+    #exponent = filedat[0]
+    #signal_length = filedat[1]
+    #iteration = filedat[2]
+    #signal = filedat[3]
     #vals = [exponent, signal_length, iteration, signal]
     ids = ["prime", "siglen", "iteration", "signal"]
     

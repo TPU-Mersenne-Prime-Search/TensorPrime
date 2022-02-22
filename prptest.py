@@ -19,7 +19,6 @@ def probable_prime(power, startPos=0, s=3):
         if saveIcount == 0:
             saveload.save(s, i)
             saveIcount = saveIter
-            print(i)
         # s *= s
         # s = s % ((1 << power) - 1)
         s = ibdwt.squaremod_with_ibdwt(s)
