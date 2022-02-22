@@ -7,21 +7,32 @@ import time
 def probable_prime(power, startPos=0, s=3):
     start = time.time()
     
-    printIter = config.settings["PrintIter"]
     timestamp = config.settings["Timestamps"]
+    # Uses counters to avoid modulo check
     saveIter = config.settings["SaveIter"]
+    saveIcount = saveIter
+    printIter = config.settings["PrintIter"]
+    printIcount = printIter
     
     for i in range(startPos, power):
     
-        if i % saveIter == 0:
+        #Iterate counters
+        saveIcount -= 1
+    
+        if saveIcount == 0:
             saveload.save(s, i)
+            saveIcount = saveIter
         # s *= s
         # s = s % ((1 << power) - 1)
         s = ibdwt.squaremod_with_ibdwt(s)
         
-        if timestamp and i % printIter == 0:
-            time_elapsed = time.time() - start
-            print("Time elapsed at iteration ", i, ": ", time_elapsed, ". S = ", s)
+        if timestamp:
+            if  printIcount == 0:
+                time_elapsed = time.time() - start
+                print("Time elapsed at iteration ", i, ": ", time_elapsed, ". S = ", s)
+                printIcount = printIter
+            else:
+                printIcount -= 1
             
         
             
