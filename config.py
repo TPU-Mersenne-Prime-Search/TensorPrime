@@ -60,19 +60,3 @@ def initialize_constants(prime_exponent, sig_length):
     # Get total array initialization time
     array_time = array_end - array_start
     print("IBDWT arrays initialized in ", array_time, " seconds.")
-
-    # Wrapping this in a try block lets it work on systems without a TPU; should make
-    # it easier to test locally, but might not be wanted
-    try:
-        print("Configuring TPU...")
-        config_start = time.time()
-        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='')
-        tf.config.experimental_connect_to_cluster(resolver)
-        tf.tpu.experimental.initialize_tpu_system(resolver)
-        config_end = time.time()
-        config_time = config_end - config_start
-        print("TPU configuration complete.")
-        print("Total time: ", config_time)
-        print()
-    except ValueError:
-        pass
