@@ -1,14 +1,14 @@
 import argparse
-import logging
 import sys
+import logging
 import time
+
+import numpy as np
 
 from log_helper import init_logger
 import IBDWT as ibdwt
 from prptest import probable_prime
-import numpy as np
 
-# Jax import and setup
 import jax
 import jax.numpy as jnp
 from jax import jit, lax, device_put
@@ -18,7 +18,6 @@ jax.tools.colab_tpu.setup_tpu()
 
 # Global variables
 import config
-
 
 def main():
     print("Starting TensorPrime")
@@ -65,17 +64,16 @@ def main():
   
     if args["prime"] is not None:
         p = int(args["prime"])
-        siglen = 64
-        bit_array, power_bit_array, weight_array = initialize_constants(p, siglen)
-
         print("Starting Probable Prime Test.")
+        bit_array, power_bit_array, weight_array = initialize_constants(p, config.signal_length)
         start_time = time.time()
         #is_probable_prime = probable_prime(p)
-        is_probable_prime = prptest(p, siglen, bit_array, power_bit_array, weight_array)
-        result = result_is_nine(is_probable_prime, bit_array, power_bit_array)
+        s = prptest(p, config.signal_length, bit_array, power_bit_array, weight_array)
+        print(s)
+        is_probable_prime = result_is_nine(s, bit_array, power_bit_array)
         end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
-                                               "probably prime!" if result else "composite"))
+                                               "probably prime!" if is_probable_prime else "composite"))
 
 @partial(jit, static_argnums=2)
 def fill_base_array(base_array, bit_array, signal_length):
@@ -204,8 +202,9 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
   for i in range(exponent):
     if i%100 == 0:
       print(i)
-    #s = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
-  return s
+    s = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
+    #s = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
+  return s  
 
 def result_is_nine(signal, bit_array, power_bit_array):
   signal = np.array(signal) # copy signal array to CPU
