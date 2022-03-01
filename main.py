@@ -6,8 +6,6 @@ import time
 import numpy as np
 
 from log_helper import init_logger
-import IBDWT as ibdwt
-from prptest import probable_prime
 
 import jax
 import jax.numpy as jnp
@@ -65,9 +63,13 @@ def main():
     if args["prime"] is not None:
         p = int(args["prime"])
         print("Starting Probable Prime Test.")
+        print("Initializing arrays")
         bit_array, power_bit_array, weight_array = initialize_constants(p, config.signal_length)
+        print(f"bit_array: {bit_array}")
+        print(f"power_bit_array: {power_bit_array}")
+        print(f"weight_array: {weight_array}")
+        print("Array initialization complete")
         start_time = time.time()
-        #is_probable_prime = probable_prime(p)
         s = prptest(p, config.signal_length, bit_array, power_bit_array, weight_array)
         print(s)
         is_probable_prime = result_is_nine(s, bit_array, power_bit_array)

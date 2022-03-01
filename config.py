@@ -5,9 +5,6 @@ import time
 
 # Needed to determine the bit_array and weight_array
 import numpy as np
-import tensorflow as tf
-
-import IBDWT as ibdwt
 
 # These will be provided by main() when it calls initialize_constants()
 exponent = None
@@ -35,28 +32,3 @@ def initialize_constants(prime_exponent, sig_length):
     signal_length = sig_length
     
     prime = 2 ** exponent - 1
-
-    # Check time of IBDWT array initialization
-    array_start = time.time()
-    
-    bit_array = ibdwt.determine_bit_array(exponent, signal_length)
-    two_to_the_bit_array = [int(0)] * signal_length
-    for i in range(0, signal_length):
-        two_to_the_bit_array[i] = 2**bit_array[i]
-    
-    base = 0
-    base_array = [int(0)] * signal_length
-    for i in range(0, signal_length):
-        base_array[i] = 2**base
-        base += bit_array[i]
-    
-    weight_array = ibdwt.determine_weight_array(exponent, signal_length)
-    inverse_weight_array = [0.0] * signal_length
-    for i in range(0, signal_length):
-        inverse_weight_array[i] = 1 / weight_array[i]
-
-    # Check time after array initialization
-    array_end = time.time()
-    # Get total array initialization time
-    array_time = array_end - array_start
-    print("IBDWT arrays initialized in ", array_time, " seconds.")
