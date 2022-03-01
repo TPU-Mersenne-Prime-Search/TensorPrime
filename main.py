@@ -198,6 +198,20 @@ def squaremod_with_ibdwt(signal, prime_exponent, signal_length, power_bit_array,
     fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
     return fullycarried_signal
 
+@partial(jit, static_argnums=(1,2,))
+def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bit_array, weight_array):
+    transformed_signal1 = weighted_transform(signal1, weight_array)
+    transformed_signal2 = weighted_transform(signal2, weight_array)
+    multiplied_transformed_signal = jnp.multiply(transformed_signal1, transformed_signal2)
+    multiplied_signal = inverse_weighted_transform(multiplied_transformed_signal, weight_array)
+    # TODO: difference between pre-rounded and rounded signal for catching roundoff errors
+    rounded_signal = jnp.int32(jnp.round(multiplied_signal))
+
+    # Balance the digits ( )
+    carryval, firstcarried_signal = firstcarry(rounded_signal, power_bit_array)
+    fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
+    return fullycarried_signal
+
 # @partial(jit, static_argnums=(0,1))
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
   s = jnp.zeros(siglen).at[0].set(3)
