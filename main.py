@@ -238,34 +238,54 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
     fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
     return fullycarried_signal
 
-# @partial(jit, static_argnums=(0,1))
+
+gec_s_saved = None
+gec_i_saved = None
+
+def rollback():
+  if gec_s_saved == None or gec_i_saved == None:
+    raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+  return gec_i_saved, gec_s_saved
+
+def update_gec_save(i, s):
+    gec_i_saved = i
+    gec_s_saved = s
+
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
   if GEC_enabled:
       print("setting GEC variables")
       L = GEC_iterations
       L_2 = L*L
-      d = 3
-      prev_d = 3
-      n = 2 ** exponent - 1
+      d = jnp.zeros(siglen).at[0].set(3)
+      prev_d = jnp.zeros(siglen).at[0].set(3)
       print("GEC variables initialized")
 
   s = jnp.zeros(siglen).at[0].set(3)
   for i in range(exponent):
-    #print("starting for loop")
+    
+    # Print i every 100 iterations to track progress
     if i%100 == 0:
       print(i)
+    
+    # Gerbicz error checking
     if GEC_enabled:
       print("performing GEC checks")
       # Every L iterations, update d and prev_d
       if i != 0 and i % L == 0:
         print("updating d, s")
         prev_d = d
-        d = (d * s) % n
+        d = multmod_with_ibdwt(d, s, exponent, siglen, power_bit_array, weight_array)
+        # d = (d * s) % n
       # Every L^2 iterations, check the current d value with and independently calculated d
       if (i != 0 and i % L_2 == 0) or (i + L > exponent):
         print("checking value")
-        check_value = (3 * (prev_d ** (2 ** L))) % n
-        if d != check_value:
+        three_signal = jnp.zeros(siglen).at[0].set(3)
+        prev_d_pow_signal = jnp.zeros(siglen)
+        # Here: signalize (prev_d ** (2 ** L)) and store in prev_d_pow_signal
+
+        check_value = multmod_with_ibdwt(three_signal, prev_d_pow_signal, siglen, power_bit_array, weight_array)
+        # check_value = (3 * (prev_d ** (2 ** L))) % n
+        if not jnp.equal(d, check_value):
           print("Error occured. Rolling back.")
           i,s = rollback()
         else:
