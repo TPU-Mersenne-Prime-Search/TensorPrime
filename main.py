@@ -12,8 +12,8 @@ import jax
 import jax.numpy as jnp
 from jax import jit, lax, device_put
 from functools import partial
-#import jax.tools.colab_tpu
-#jax.tools.colab_tpu.setup_tpu()
+import jax.tools.colab_tpu
+jax.tools.colab_tpu.setup_tpu()
 
 import config
 import saveload
