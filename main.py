@@ -15,6 +15,9 @@ from functools import partial
 #import jax.tools.colab_tpu
 #jax.tools.colab_tpu.setup_tpu()
 
+import config
+import saveload
+
 # Global variables
 GEC_enabled = False
 GEC_iterations = 2000000
@@ -23,6 +26,8 @@ GEC_iterations = 2000000
 def main():
     print("Starting TensorPrime")
     parser = argparse.ArgumentParser()
+    
+    config.getSettings()
 
     # in order to add more arguments to the parser, attempt a similar declaration to below. Anthing without a dash is becomes ordinal and required
     parser.add_argument("-p", "--prime", type=int,
@@ -33,8 +38,21 @@ def main():
                         help="perform testing etc")
     parser.add_argument("--siglen", type=int, default=128,
                        help="Power of two used as the signal length")
+    parser.add_argument("-r", "--resume", action="store_true")
     
     args = vars(parser.parse_args())
+    
+    # Get values from memory
+    # This WILL override the siglen given from arguments.
+    if args["resume"] or config.settings["AutoResume"]:
+        preval = saveload.load()
+        if preval != None:
+            args.update(preval)
+        else:
+            args["resume"] = False
+    else:
+        args["resume"] = False
+        
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
         exit()
@@ -67,6 +85,16 @@ def main():
         print("Array initialization complete")
         start_time = time.time()
         s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
+        '''
+        start_time = time.time()
+        is_probable_prime = None
+        # Resume
+        if args["resume"]:
+            print("Resuming at iteration", args["iteration"])
+            is_probable_prime = probable_prime(p, startPos=args["iteration"], s=args["signal"])
+        else:
+            is_probable_prime = probable_prime(p)
+        '''
         end_time = time.time()
         print(s)
         is_probable_prime = result_is_nine(s, bit_array, power_bit_array)

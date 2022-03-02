@@ -1,7 +1,9 @@
-
+settings = None
+        
 # Returns settings in the form of a dictionary
 def getSettings():
     file = open("settings.txt", "r")
+    global settings
 
     # Dictionary contains all settings as key value pairs
     settings = {}
@@ -20,14 +22,17 @@ def getSettings():
                 value = True
             elif value == "F":
                 value = False
+            elif value[len(value)-1] == "i":
+                value = int(value[:len(value)-1])
+            
+            '''
             else:
                 print("odd value: ", value)
+            '''
             
             # Add to dictionary
             settings.update({idv: value})
 
     file.close()
     # Dictionary to variables?
-    return settings
-
-
+    # return settings
