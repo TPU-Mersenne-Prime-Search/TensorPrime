@@ -2,20 +2,23 @@ import argparse
 import sys
 import logging
 import time
+import math
 
 import numpy as np
 
+import gerbicz
+from gerbicz import update_gec_save, rollback
 from log_helper import init_logger
 
 import jax
 import jax.numpy as jnp
 from jax import jit, lax, device_put
 from functools import partial
-import jax.tools.colab_tpu
-jax.tools.colab_tpu.setup_tpu()
+#import jax.tools.colab_tpu
+#jax.tools.colab_tpu.setup_tpu()
 
 # Global variables
-import config
+
 
 def main():
     print("Starting TensorPrime")
@@ -52,7 +55,7 @@ def main():
     # Some may share global setups
     #if args["prime"] and args["siglen"]:
     # Pass prime power and signal length.
-    config.initialize_constants(args["prime"], args["siglen"])
+    #config.initialize_constants(args["prime"], args["siglen"])
 
     if args["bench"] is not None:
         pass
@@ -64,16 +67,16 @@ def main():
         p = int(args["prime"])
         print("Starting Probable Prime Test.")
         print("Initializing arrays")
-        bit_array, power_bit_array, weight_array = initialize_constants(p, config.signal_length)
+        bit_array, power_bit_array, weight_array = initialize_constants(p, args["siglen"])
         print(f"bit_array: {bit_array}")
         print(f"power_bit_array: {power_bit_array}")
         print(f"weight_array: {weight_array}")
         print("Array initialization complete")
         start_time = time.time()
-        s = prptest(p, config.signal_length, bit_array, power_bit_array, weight_array)
+        s = prptest(p, args["siglen"], bit_array, power_bit_array, weight_array)
+        end_time = time.time()
         print(s)
         is_probable_prime = result_is_nine(s, bit_array, power_bit_array)
-        end_time = time.time()
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
 
@@ -214,14 +217,41 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
 
 # @partial(jit, static_argnums=(0,1))
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
-  x = jnp.zeros(siglen).at[0].set(3)
-  y = jnp.zeros(siglen).at[0].set(3)
+  if config.GEC_enabled:
+      print("setting GEC variables")
+      L = config.GEC_iterations
+      L_2 = L*L
+      d = 3
+      prev_d = 3
+      n = 2 ** exponent - 1
+      print("GEC variables initialized")
+
+  s = jnp.zeros(siglen).at[0].set(3)
   for i in range(exponent):
+    #print("starting for loop")
     if i%100 == 0:
       print(i)
-    #s = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
-    s = multmod_with_ibdwt(x, y, exponent, siglen, power_bit_array, weight_array)
-  return s  
+    if config.GEC_enabled:
+      print("performing GEC checks")
+      # Every L iterations, update d and prev_d
+      if i != 0 and i % L == 0:
+        print("updating d, s")
+        prev_d = d
+        d = (d * s) % n
+      # Every L^2 iterations, check the current d value with and independently calculated d
+      if (i != 0 and i % L_2 == 0) or (i + L > exponent):
+        print("checking value")
+        check_value = (3 * (prev_d ** (2 ** L))) % n
+        if d != check_value:
+          print("Error occured. Rolling back.")
+          i,s = rollback()
+        else:
+          print("updating gec_save")
+          update_gec_save(i,s)
+
+    s = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
+    #result = multmod_with_ibdwt(x, y, exponent, siglen, power_bit_array, weight_array)
+  return s
 
 def result_is_nine(signal, bit_array, power_bit_array):
   signal = np.array(signal) # copy signal array to CPU

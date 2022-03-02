@@ -18,6 +18,10 @@ base_array = None
 weight_array = None
 inverse_weight_array = None
 
+# Constants for GEC
+GEC_enabled = False
+GEC_iterations = 2000000
+
 def initialize_constants(prime_exponent, sig_length):
     global exponent
     global signal_length
