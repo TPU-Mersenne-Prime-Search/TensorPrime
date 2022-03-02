@@ -6,8 +6,6 @@ import math
 
 import numpy as np
 
-import gerbicz
-from gerbicz import update_gec_save, rollback
 from log_helper import init_logger
 
 import jax
@@ -18,6 +16,8 @@ from functools import partial
 #jax.tools.colab_tpu.setup_tpu()
 
 # Global variables
+GEC_enabled = False
+GEC_iterations = 2000000
 
 
 def main():
@@ -45,17 +45,11 @@ def main():
     # If you want specific behavior for the options, eg prime is none, exit()""
     # Command line arguments
 
-    # Argument option to load from file?
-
-    # Determine which function is wanted,
-    # Run relevant function
+    # Initialize logger specific to our runtime
+    m_logger = init_logger(args)
     
-    m_logger = init_logger(args)   # logging functionality specific to our runtime
-    
-    # Some may share global setups
-    #if args["prime"] and args["siglen"]:
-    # Pass prime power and signal length.
-    #config.initialize_constants(args["prime"], args["siglen"])
+    p = int(args["prime"])
+    siglen = int(args["siglen"])
 
     if args["bench"] is not None:
         pass
@@ -63,22 +57,23 @@ def main():
     if args["fft"] is not None:
         pass
   
-    if args["prime"] is not None:
-        p = int(args["prime"])
+    if p is not None:
         print("Starting Probable Prime Test.")
         print("Initializing arrays")
-        bit_array, power_bit_array, weight_array = initialize_constants(p, args["siglen"])
+        bit_array, power_bit_array, weight_array = initialize_constants(p, siglen)
         print(f"bit_array: {bit_array}")
         print(f"power_bit_array: {power_bit_array}")
         print(f"weight_array: {weight_array}")
         print("Array initialization complete")
         start_time = time.time()
-        s = prptest(p, args["siglen"], bit_array, power_bit_array, weight_array)
+        s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
         end_time = time.time()
         print(s)
         is_probable_prime = result_is_nine(s, bit_array, power_bit_array)
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
+    else:
+      print("Usage: python -m main.py -p <exponent> [--siglen <signal length>]")
 
 @partial(jit, static_argnums=2)
 def fill_base_array(base_array, bit_array, signal_length):
@@ -217,9 +212,9 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
 
 # @partial(jit, static_argnums=(0,1))
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
-  if config.GEC_enabled:
+  if GEC_enabled:
       print("setting GEC variables")
-      L = config.GEC_iterations
+      L = GEC_iterations
       L_2 = L*L
       d = 3
       prev_d = 3
@@ -231,7 +226,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
     #print("starting for loop")
     if i%100 == 0:
       print(i)
-    if config.GEC_enabled:
+    if GEC_enabled:
       print("performing GEC checks")
       # Every L iterations, update d and prev_d
       if i != 0 and i % L == 0:
@@ -250,7 +245,6 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
           update_gec_save(i,s)
 
     s = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
-    #result = multmod_with_ibdwt(x, y, exponent, siglen, power_bit_array, weight_array)
   return s
 
 def result_is_nine(signal, bit_array, power_bit_array):
