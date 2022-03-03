@@ -280,9 +280,10 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
       if (i != 0 and i % L_2 == 0) or (i + L > exponent):
         print("checking value")
         three_signal = jnp.zeros(siglen).at[0].set(3)
-        prev_d_pow_signal = jnp.zeros(siglen)
+        prev_d_pow_signal = None
         # Here: signalize (prev_d ** (2 ** L)) and store in prev_d_pow_signal
-
+        for i in range(L):
+          prev_d_pow_signal = squaremod_with_ibdwt(prev_d, siglen, power_bit_array, weight_array)
         check_value = multmod_with_ibdwt(three_signal, prev_d_pow_signal, siglen, power_bit_array, weight_array)
         # check_value = (3 * (prev_d ** (2 ** L))) % n
         if not jnp.equal(d, check_value):
