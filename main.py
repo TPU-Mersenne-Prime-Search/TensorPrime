@@ -151,13 +151,13 @@ def calc_max_array(power_bit_array):
 
 
 def initialize_constants(exponent, signal_length):
-    bit_array = jnp.zeros(signal_length)
+    bit_array = jnp.zeros(signal_length, dtype=jnp.float32)
     bit_array = fill_bit_array(bit_array, exponent, signal_length)
     
-    power_bit_array = jnp.zeros(signal_length)
+    power_bit_array = jnp.zeros(signal_length, dtype=jnp.float32)
     power_bit_array = fill_power_bit_array(power_bit_array, bit_array, signal_length)
     
-    weight_array = jnp.zeros(signal_length)
+    weight_array = jnp.zeros(signal_length, dtype=jnp.float32)
     weight_array = fill_weight_array(weight_array, exponent, signal_length)
 
     return bit_array, power_bit_array, weight_array
@@ -234,13 +234,15 @@ def squaremod_with_ibdwt(signal, prime_exponent, signal_length, power_bit_array,
     transformed_signal = weighted_transform(balanced_signal, weight_array)
     squared_transformed_signal = jnp.multiply(transformed_signal, transformed_signal)
     squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
-    # TODO: difference between pre-rounded and rounded signal for catching roundoff errors
     rounded_signal = jnp.int32(jnp.round(squared_signal))
+
+    # Test rounding against threshold. Consider using "max" instead of "sum" if this is too sensitive. 
+    roundoff = jnp.max(jnp.abs(jnp.subtract(squared_signal, rounded_signal)))
 
     # Balance the digits ( )
     carryval, firstcarried_signal = firstcarry(rounded_signal, power_bit_array)
     fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
-    return fullycarried_signal
+    return fullycarried_signal, roundoff
 
 @partial(jit, static_argnums=(2,3,))
 def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bit_array, weight_array):
@@ -251,13 +253,15 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
     transformed_signal2 = weighted_transform(balanced_signal2, weight_array)
     multiplied_transformed_signal = jnp.multiply(transformed_signal1, transformed_signal2)
     multiplied_signal = inverse_weighted_transform(multiplied_transformed_signal, weight_array)
-    # TODO: difference between pre-rounded and rounded signal for catching roundoff errors
     rounded_signal = jnp.int32(jnp.round(multiplied_signal))
+
+    # Test rounding against threshold. Consider using "max" instead of "sum" if this is too sensitive. 
+    roundoff = jnp.max(jnp.abs(jnp.subtract(multiplied_signal, rounded_signal)))
 
     # Balance the digits ( )
     carryval, firstcarried_signal = firstcarry(rounded_signal, power_bit_array)
     fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
-    return fullycarried_signal
+    return fullycarried_signal, roundoff
 
 # @partial(jit, static_argnums=(0,1))
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
@@ -293,7 +297,10 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
           print("updating gec_save")
           update_gec_save(i,s)
 
-    s = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
+    s, roundoff = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
+    if roundoff > 0.4375:
+      raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
+    
   return s
 
 def result_is_nine(signal, bit_array, power_bit_array):
