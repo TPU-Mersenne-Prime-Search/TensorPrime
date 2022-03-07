@@ -19,8 +19,8 @@ import config
 import saveload
 
 # Global variables
-GEC_enabled = False
-GEC_iterations = 2000000
+GEC_enabled = True
+GEC_iterations = 100 #10000 #200000
 
 
 def main():
@@ -238,9 +238,8 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
     fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
     return fullycarried_signal
 
-
-gec_s_saved = None
-gec_i_saved = None
+gec_s_saved = 3
+gec_i_saved = 3
 
 def rollback():
   if gec_s_saved == None or gec_i_saved == None:
@@ -253,44 +252,40 @@ def update_gec_save(i, s):
 
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
   if GEC_enabled:
-      print("setting GEC variables")
-      L = GEC_iterations
-      L_2 = L*L
-      d = jnp.zeros(siglen).at[0].set(3)
-      prev_d = jnp.zeros(siglen).at[0].set(3)
-      print("GEC variables initialized")
+    
+    L = GEC_iterations
+    L_2 = L*L
+    d = jnp.zeros(siglen).at[0].set(3)
+    prev_d = jnp.zeros(siglen).at[0].set(3)
+    three_signal = jnp.zeros(siglen).at[0].set(3)
 
   s = jnp.zeros(siglen).at[0].set(3)
   for i in range(exponent):
-    
     # Print i every 100 iterations to track progress
     if i%100 == 0:
       print(i)
-    
     # Gerbicz error checking
     if GEC_enabled:
-      print("performing GEC checks")
       # Every L iterations, update d and prev_d
       if i != 0 and i % L == 0:
-        print("updating d, s")
         prev_d = d
         d = multmod_with_ibdwt(d, s, exponent, siglen, power_bit_array, weight_array)
-        # d = (d * s) % n
       # Every L^2 iterations, check the current d value with and independently calculated d
-      if (i != 0 and i % L_2 == 0) or (i + L > exponent):
-        print("checking value")
-        three_signal = jnp.zeros(siglen).at[0].set(3)
-        prev_d_pow_signal = None
-        # Here: signalize (prev_d ** (2 ** L)) and store in prev_d_pow_signal
+      if (i != 0 and i % L_2 == 0) or (i % L == 0 and (i + L > exponent)):
+        prev_d_pow_signal = prev_d
         for i in range(L):
-          prev_d_pow_signal = squaremod_with_ibdwt(prev_d, siglen, power_bit_array, weight_array)
-        check_value = multmod_with_ibdwt(three_signal, prev_d_pow_signal, siglen, power_bit_array, weight_array)
+          prev_d_pow_signal = squaremod_with_ibdwt(prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
+        check_value = multmod_with_ibdwt(three_signal, prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
+        print(d)
+        print(check_value)
         # check_value = (3 * (prev_d ** (2 ** L))) % n
-        if not jnp.equal(d, check_value):
-          print("Error occured. Rolling back.")
+        if not jnp.array_equal(d, check_value):
+          print("error occured. rolling back to last save.")
           i,s = rollback()
+          print("i: ", i)
+          print("s: ", s)
         else:
-          print("updating gec_save")
+          print("updating gec_save values")
           update_gec_save(i,s)
 
     s = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
