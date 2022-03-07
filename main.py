@@ -84,16 +84,19 @@ def main():
         print(f"weight_array: {weight_array}")
         print("Array initialization complete")
         start_time = time.time()
-        s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
-        '''
-        start_time = time.time()
-        is_probable_prime = None
-        # Resume
+        
+        s = None
         if args["resume"]:
             print("Resuming at iteration", args["iteration"])
-            is_probable_prime = probable_prime(p, startPos=args["iteration"], s=args["signal"])
+            s = prptest(p, siglen, bit_array, power_bit_array, weight_array, startPos=args["iteration"], s=args["signal"])
         else:
-            is_probable_prime = probable_prime(p)
+            s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
+        
+        
+        
+        '''
+        is_probable_prime = None
+        # Resume
         '''
         end_time = time.time()
         print(s)
@@ -264,7 +267,7 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
     return fullycarried_signal, roundoff
 
 # @partial(jit, static_argnums=(0,1))
-def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
+def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos=0, s = None):
   if GEC_enabled:
       print("setting GEC variables")
       L = GEC_iterations
@@ -273,12 +276,20 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
       prev_d = 3
       n = 2 ** exponent - 1
       print("GEC variables initialized")
-
-  s = jnp.zeros(siglen).at[0].set(3)
-  for i in range(exponent):
-    #print("starting for loop")
-    if i%100 == 0:
-      print(i)
+      
+  start = time.time()
+  # Load settings values for this function
+  timestamp = config.settings["Timestamps"]
+  # Uses counters to avoid modulo check
+  saveIter = config.settings["SaveIter"]
+  saveIcount = saveIter
+  printIter = config.settings["PrintIter"]
+  printIcount = printIter
+  if s == None:
+    s = jnp.zeros(siglen).at[0].set(3)
+  
+  for i in range(startPos, exponent):
+  
     if GEC_enabled:
       print("performing GEC checks")
       # Every L iterations, update d and prev_d
@@ -296,10 +307,24 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
         else:
           print("updating gec_save")
           update_gec_save(i,s)
+    
+    # Saving
+    if saveIcount == 0:
+      saveload.save(s, i)
+      saveIcount = saveIter
+    saveIcount -= 1
 
     s, roundoff = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
     if roundoff > 0.4375:
       raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
+      
+    # Printing
+    if timestamp:
+      if printIcount == 0:
+        time_elapsed = time.time() - start
+        print("Time elapsed at iteration ", i, ": ", time_elapsed, ". S = ", s)
+        printIcount = printIter
+      printIcount -= 1
     
   return s
 

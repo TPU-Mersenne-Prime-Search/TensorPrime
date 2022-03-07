@@ -1,6 +1,6 @@
 import config
-import numpy as np
-#import jax.numpy as np
+#import numpy as np
+import jax.numpy as np
 import os
 
 dirname = os.path.dirname(__file__)
