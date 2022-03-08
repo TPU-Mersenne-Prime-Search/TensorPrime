@@ -10,7 +10,7 @@ extension = ".npy"
 # BootstrapTensorPrime
 
 # Saves data required to re-initialize the search
-def save(signal, iteration):
+def save(exponent, siglen, signal, iteration):
     global pathed
     global extension
 
@@ -35,7 +35,7 @@ def save(signal, iteration):
     # Pack data
     # Exponent, Signal length are required to re-build
     # signal and iteration are required to resume within a prime check
-    packed = [config.exponent, config.signal_length, iteration, signal]
+    packed = [exponent, siglen, iteration, signal]
     
     # Save data
     np.save(pathed + "0", packed)

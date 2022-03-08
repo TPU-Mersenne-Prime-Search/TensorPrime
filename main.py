@@ -304,7 +304,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
     
     # Saving
     if saveIcount == 0:
-      saveload.save(s, i)
+      saveload.save(exponent, siglen, s, i)
       saveIcount = saveIter
     saveIcount -= 1
 
