@@ -56,18 +56,17 @@ def load():
     
     # Load latest save file
     filedat = np.load(pathed + "0" + extension, allow_pickle = True)
-    filedat.append(np.load(pathed + "signal0" + extension, allow_pickle = True))
+    signal = np.load(pathed + "signal0" + extension, allow_pickle = True)
     
     # The signal length may be the cause of the problem
     # which would require it to be initialized from args
     # and NOT from the save.
     # This is not handled.
     
-    #exponent = filedat[0]
-    #signal_length = filedat[1]
-    #iteration = filedat[2]
-    #signal = filedat[3]
-    #vals = [exponent, signal_length, iteration, signal]
+    exponent = filedat[0]
+    signal_length = filedat[1]
+    iteration = filedat[2]
+    vals = [exponent, signal_length, iteration, signal]
     ids = ["prime", "siglen", "iteration", "signal"]
     
-    return zip(ids, filedat)
+    return zip(ids, vals)
