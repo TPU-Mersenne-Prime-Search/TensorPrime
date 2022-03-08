@@ -13,8 +13,8 @@ import jax.numpy as jnp
 from jax import jit, lax, device_put
 from functools import partial
 import jax.tools.colab_tpu
-#jax.tools.colab_tpu.setup_tpu()
-jax.config.update("jax_enable_x64", True)
+jax.tools.colab_tpu.setup_tpu()
+#jax.config.update("jax_enable_x64", True)
 
 import config
 import saveload
@@ -153,16 +153,16 @@ def calc_max_array(power_bit_array):
 
 def initialize_constants(exponent, signal_length):
     bit_array = jnp.zeros(signal_length)
-    #bit_array = fill_bit_array(bit_array, exponent, signal_length)
-    bit_array = jnp.array(fill_bit_array(bit_array, exponent, signal_length), dtype=jnp.float64)
+    bit_array = fill_bit_array(bit_array, exponent, signal_length)
+    #bit_array = jnp.array(fill_bit_array(bit_array, exponent, signal_length), dtype=jnp.float64)
 
     power_bit_array = jnp.zeros(signal_length)
-    #power_bit_array = fill_power_bit_array(power_bit_array, bit_array, signal_length)
-    power_bit_array = jnp.array(fill_power_bit_array(power_bit_array, bit_array, signal_length), dtype=jnp.float64)
+    power_bit_array = fill_power_bit_array(power_bit_array, bit_array, signal_length)
+    #power_bit_array = jnp.array(fill_power_bit_array(power_bit_array, bit_array, signal_length), dtype=jnp.float64)
     
     weight_array = jnp.zeros(signal_length)
-    #weight_array = fill_weight_array(weight_array, exponent, signal_length)
-    weight_array = jnp.array(fill_weight_array(weight_array, exponent, signal_length), dtype=jnp.float64)
+    weight_array = fill_weight_array(weight_array, exponent, signal_length)
+    #weight_array = jnp.array(fill_weight_array(weight_array, exponent, signal_length), dtype=jnp.float64)
 
     return bit_array, power_bit_array, weight_array
 
