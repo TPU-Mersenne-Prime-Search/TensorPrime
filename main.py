@@ -20,7 +20,7 @@ import saveload
 
 # Global variables
 GEC_enabled = True
-GEC_iterations = 100 #10000 #200000
+GEC_iterations = 100
 
 
 def main():
@@ -218,11 +218,12 @@ def squaremod_with_ibdwt(signal, prime_exponent, signal_length, power_bit_array,
     squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
     # TODO: difference between pre-rounded and rounded signal for catching roundoff errors
     rounded_signal = jnp.int32(jnp.round(squared_signal))
+    roundoff = jnp.max(jnp.abs(jnp.subtract(squared_signal, rounded_signal)))
 
     # Balance the digits ( )
     carryval, firstcarried_signal = firstcarry(rounded_signal, power_bit_array)
     fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
-    return fullycarried_signal
+    return fullycarried_signal, roundoff
 
 @partial(jit, static_argnums=(2,3,))
 def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bit_array, weight_array):
@@ -232,14 +233,15 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
     multiplied_signal = inverse_weighted_transform(multiplied_transformed_signal, weight_array)
     # TODO: difference between pre-rounded and rounded signal for catching roundoff errors
     rounded_signal = jnp.int32(jnp.round(multiplied_signal))
+    roundoff = jnp.max(jnp.abs(jnp.subtract(multiplied_signal, rounded_signal)))
 
     # Balance the digits ( )
     carryval, firstcarried_signal = firstcarry(rounded_signal, power_bit_array)
     fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
-    return fullycarried_signal
+    return fullycarried_signal, roundoff
 
-gec_s_saved = 3
-gec_i_saved = 3
+gec_s_saved = None
+gec_i_saved = None
 
 def rollback():
   if gec_s_saved == None or gec_i_saved == None:
@@ -251,8 +253,7 @@ def update_gec_save(i, s):
     gec_s_saved = s
 
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
-  if GEC_enabled:
-    
+  if GEC_enabled:  
     L = GEC_iterations
     L_2 = L*L
     d = jnp.zeros(siglen).at[0].set(3)
@@ -269,16 +270,13 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
       # Every L iterations, update d and prev_d
       if i != 0 and i % L == 0:
         prev_d = d
-        d = multmod_with_ibdwt(d, s, exponent, siglen, power_bit_array, weight_array)
+        d, roundoff = multmod_with_ibdwt(d, s, exponent, siglen, power_bit_array, weight_array)
       # Every L^2 iterations, check the current d value with and independently calculated d
       if (i != 0 and i % L_2 == 0) or (i % L == 0 and (i + L > exponent)):
         prev_d_pow_signal = prev_d
         for i in range(L):
-          prev_d_pow_signal = squaremod_with_ibdwt(prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
-        check_value = multmod_with_ibdwt(three_signal, prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
-        print(d)
-        print(check_value)
-        # check_value = (3 * (prev_d ** (2 ** L))) % n
+          prev_d_pow_signal, roundoff = squaremod_with_ibdwt(prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
+        check_value, roundoff = multmod_with_ibdwt(three_signal, prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
         if not jnp.array_equal(d, check_value):
           print("error occured. rolling back to last save.")
           i,s = rollback()
@@ -288,7 +286,9 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
           print("updating gec_save values")
           update_gec_save(i,s)
 
-    s = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
+    s, roundoff = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
+    if roundoff > 0.4375:
+      raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
   return s
 
 def result_is_nine(signal, bit_array, power_bit_array):
