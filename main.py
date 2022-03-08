@@ -266,8 +266,6 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
     prev_d = jnp.zeros(siglen).at[0].set(3)
     three_signal = jnp.zeros(siglen).at[0].set(3)
     forced_rollback = False
-    gec_i_saved = None
-    gec_s_saved = None
 
   s = jnp.zeros(siglen).at[0].set(3)
   for i in range(exponent):
