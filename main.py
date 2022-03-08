@@ -13,14 +13,15 @@ import jax.numpy as jnp
 from jax import jit, lax, device_put
 from functools import partial
 import jax.tools.colab_tpu
-jax.tools.colab_tpu.setup_tpu()
+#jax.tools.colab_tpu.setup_tpu()
+jax.config.update("jax_enable_x64", True)
 
 import config
 import saveload
 
 # Global variables
 GEC_enabled = True
-GEC_iterations = 100
+GEC_iterations = 10 #10000 #200000
 
 
 def main():
@@ -152,13 +153,16 @@ def calc_max_array(power_bit_array):
 
 def initialize_constants(exponent, signal_length):
     bit_array = jnp.zeros(signal_length)
-    bit_array = fill_bit_array(bit_array, exponent, signal_length)
-    
+    #bit_array = fill_bit_array(bit_array, exponent, signal_length)
+    bit_array = jnp.array(fill_bit_array(bit_array, exponent, signal_length), dtype=jnp.float64)
+
     power_bit_array = jnp.zeros(signal_length)
-    power_bit_array = fill_power_bit_array(power_bit_array, bit_array, signal_length)
+    #power_bit_array = fill_power_bit_array(power_bit_array, bit_array, signal_length)
+    power_bit_array = jnp.array(fill_power_bit_array(power_bit_array, bit_array, signal_length), dtype=jnp.float64)
     
     weight_array = jnp.zeros(signal_length)
-    weight_array = fill_weight_array(weight_array, exponent, signal_length)
+    #weight_array = fill_weight_array(weight_array, exponent, signal_length)
+    weight_array = jnp.array(fill_weight_array(weight_array, exponent, signal_length), dtype=jnp.float64)
 
     return bit_array, power_bit_array, weight_array
 
@@ -249,6 +253,8 @@ def rollback():
   return gec_i_saved, gec_s_saved
 
 def update_gec_save(i, s):
+    global gec_i_saved
+    global gec_s_saved
     gec_i_saved = i
     gec_s_saved = s
 
@@ -259,6 +265,9 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
     d = jnp.zeros(siglen).at[0].set(3)
     prev_d = jnp.zeros(siglen).at[0].set(3)
     three_signal = jnp.zeros(siglen).at[0].set(3)
+    forced_rollback = False
+    gec_i_saved = None
+    gec_s_saved = None
 
   s = jnp.zeros(siglen).at[0].set(3)
   for i in range(exponent):
@@ -274,18 +283,20 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
       # Every L^2 iterations, check the current d value with and independently calculated d
       if (i != 0 and i % L_2 == 0) or (i % L == 0 and (i + L > exponent)):
         prev_d_pow_signal = prev_d
-        for i in range(L):
+        for j in range(L):
           prev_d_pow_signal, roundoff = squaremod_with_ibdwt(prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
         check_value, roundoff = multmod_with_ibdwt(three_signal, prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
+        if (i > 200) and forced_rollback == False:
+          check_value = check_value.at[0].set(8)
+          forced_rollback = True
         if not jnp.array_equal(d, check_value):
-          print("error occured. rolling back to last save.")
+          print("error occurred. rolling back to last save.")
           i,s = rollback()
-          print("i: ", i)
-          print("s: ", s)
+          
         else:
           print("updating gec_save values")
           update_gec_save(i,s)
-
+          
     s, roundoff = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
     if roundoff > 0.4375:
       raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
