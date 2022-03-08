@@ -92,12 +92,6 @@ def main():
         else:
             s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
         
-        
-        
-        '''
-        is_probable_prime = None
-        # Resume
-        '''
         end_time = time.time()
         print(s)
         is_probable_prime = result_is_nine(s, bit_array, power_bit_array)

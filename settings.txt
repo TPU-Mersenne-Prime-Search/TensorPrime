@@ -15,7 +15,7 @@
 -PrintIter: 100i
 -Timestamps: T
 Iterations between saves
--SaveIter: 200i
+-SaveIter: 50i
 Number of savefiles to keep
 -SaveCount: 10i
 
