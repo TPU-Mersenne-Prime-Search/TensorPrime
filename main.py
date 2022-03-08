@@ -21,7 +21,7 @@ import saveload
 
 # Global variables
 GEC_enabled = True
-GEC_iterations = 10 #10000 #200000
+GEC_iterations = 100 #10000 #200000
 
 
 def main():
@@ -246,29 +246,34 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
 
 gec_s_saved = None
 gec_i_saved = None
+gec_d_saved = None
 
 def rollback():
-  if gec_s_saved == None or gec_i_saved == None:
+  if gec_s_saved == None or gec_i_saved == None or gec_d_saved == None:
     raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
-  return gec_i_saved, gec_s_saved
+  return gec_i_saved, gec_s_saved, gec_d_saved
 
-def update_gec_save(i, s):
+def update_gec_save(i, s, d):
     global gec_i_saved
     global gec_s_saved
+    global gec_d_saved
     gec_i_saved = i
     gec_s_saved = s
+    gec_d_saved = d
 
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
   if GEC_enabled:  
     L = GEC_iterations
     L_2 = L*L
-    d = jnp.zeros(siglen).at[0].set(3)
-    prev_d = jnp.zeros(siglen).at[0].set(3)
     three_signal = jnp.zeros(siglen).at[0].set(3)
-    forced_rollback = False
+    d = three_signal
+    prev_d = three_signal
+    update_gec_save(0, jnp.zeros(siglen).at[0].set(3), jnp.zeros(siglen).at[0].set(3))
+
 
   s = jnp.zeros(siglen).at[0].set(3)
-  for i in range(exponent):
+  i = 0
+  while(i < exponent):
     # Print i every 100 iterations to track progress
     if i%100 == 0:
       print(i)
@@ -284,20 +289,18 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
         for j in range(L):
           prev_d_pow_signal, roundoff = squaremod_with_ibdwt(prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
         check_value, roundoff = multmod_with_ibdwt(three_signal, prev_d_pow_signal, exponent, siglen, power_bit_array, weight_array)
-        if (i > 200) and forced_rollback == False:
-          check_value = check_value.at[0].set(8)
-          forced_rollback = True
+        
         if not jnp.array_equal(d, check_value):
           print("error occurred. rolling back to last save.")
-          i,s = rollback()
-          
+          i,s,d = rollback()
+      
         else:
-          print("updating gec_save values")
-          update_gec_save(i,s)
+          update_gec_save(i,s,d)
           
     s, roundoff = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
     if roundoff > 0.4375:
       raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
+    i += 1   
   return s
 
 def result_is_nine(signal, bit_array, power_bit_array):
