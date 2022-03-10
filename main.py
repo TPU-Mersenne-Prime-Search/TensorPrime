@@ -20,7 +20,7 @@ import saveload
 
 # Global variables
 GEC_enabled = True
-GEC_iterations = 100
+GEC_iterations = 1000
 
 
 def main():
@@ -232,9 +232,7 @@ def squaremod_with_ibdwt(signal, prime_exponent, signal_length, power_bit_array,
     squared_transformed_signal = jnp.multiply(transformed_signal, transformed_signal)
     squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
     rounded_signal = jnp.int32(jnp.round(squared_signal))
-    roundoff = jnp.max(jnp.abs(jnp.subtract(squared_signal, rounded_signal)))
 
-    # Test rounding against threshold. Consider using "max" instead of "sum" if this is too sensitive. 
     roundoff = jnp.max(jnp.abs(jnp.subtract(squared_signal, rounded_signal)))
 
     # Balance the digits ( )
@@ -252,9 +250,7 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
     multiplied_transformed_signal = jnp.multiply(transformed_signal1, transformed_signal2)
     multiplied_signal = inverse_weighted_transform(multiplied_transformed_signal, weight_array)
     rounded_signal = jnp.int32(jnp.round(multiplied_signal))
-    roundoff = jnp.max(jnp.abs(jnp.subtract(multiplied_signal, rounded_signal)))
-
-    # Test rounding against threshold. Consider using "max" instead of "sum" if this is too sensitive. 
+    
     roundoff = jnp.max(jnp.abs(jnp.subtract(multiplied_signal, rounded_signal)))
 
     # Balance the digits ( )
@@ -280,6 +276,16 @@ def update_gec_save(i, s, d):
     gec_d_saved = d
 
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
+
+  start = time.time()
+  # Load settings values for this function
+  timestamp = config.settings["Timestamps"]
+  # Uses counters to avoid modulo check
+  saveIter = config.settings["SaveIter"]
+  saveIcount = saveIter
+  printIter = config.settings["PrintIter"]
+  printIcount = printIter
+
   if GEC_enabled:  
     L = GEC_iterations
     L_2 = L*L
@@ -313,10 +319,8 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
           i,s,d = rollback()
       
         else:
-          update_gec_save(i,s,d)
-
           print("updating gec_save")
-          update_gec_save(i,s)
+          update_gec_save(i,s,d)
     
     # Saving
     if saveIcount == 0:
