@@ -38,13 +38,15 @@ def main():
                         help="perform testing etc")
     parser.add_argument("--siglen", type=int, default=128,
                        help="Power of two used as the signal length")
-    parser.add_argument("-r", "--resume", action="store_true")
+    parser.add_argument("-r", "--resume", type=int, default = -1,
+                        help="Save to resume from. Most recent is 0")
     
     args = vars(parser.parse_args())
     
     # Get values from memory
     # This WILL override the siglen given from arguments.
-    if args["resume"] or config.settings["AutoResume"]:
+    if args["resume"] != -1 or config.settings["AutoResume"]:
+        #args["resume"]
         preval = saveload.load()
         if preval != None:
             args.update(preval)
@@ -263,7 +265,11 @@ gec_i_saved = None
 gec_d_saved = None
 
 def rollback():
-  if gec_s_saved == None or gec_i_saved == None or gec_d_saved == None:
+  if gec_s_saved == None:
+    raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+  if gec_i_saved == None:
+    raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+  if gec_d_saved == None:
     raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
   return gec_i_saved, gec_s_saved, gec_d_saved
 
@@ -272,8 +278,8 @@ def update_gec_save(i, s, d):
     global gec_s_saved
     global gec_d_saved
     gec_i_saved = i
-    gec_s_saved = s
-    gec_d_saved = d
+    gec_s_saved = s.copy()
+    gec_d_saved = d.copy()
 
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos = 0, s = None):
 

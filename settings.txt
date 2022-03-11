@@ -1,15 +1,7 @@
 	Setup settings
 	(may become command line arguments)
-? Mode (factoring, )
 -Directory: data/
--Threads: ?
 -AutoResume: F
-
-	PRP settings
--Blocksize: 100i
--Bound1: ?
--Bound2: ?
--ProofPower: ?
 
 	Calculation settings
 -PrintIter: 100i
@@ -21,5 +13,4 @@ Number of savefiles to keep
 
 	Network settings
 -UsePrimenet: F
-? Data needed to mount a drive file? 
 
