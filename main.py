@@ -85,7 +85,9 @@ def main():
         s = None
         if args["resume"] != -1:
             print("Resuming at iteration", args["iteration"])
-            s = prptest(p, siglen, bit_array, power_bit_array, weight_array, startPos=args["iteration"], s=args["signal"])
+            s = prptest(p, siglen, bit_array, power_bit_array, weight_array, 
+                startPos=args["iteration"], s=args["signal"],
+                d = args["d"], d_prev = args["d_prev"])
         else:
             s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
         
@@ -281,7 +283,7 @@ def update_gec_save(i, s, d):
     gec_s_saved = s.copy()
     gec_d_saved = d.copy()
 
-def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos = 0, s = None):
+def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos = 0, s = None, d = None, prev_d = None):
 
   GEC_enabled = config.settings["GECEnabled"]
   GEC_iterations = config.settings["GECIter"]
@@ -303,6 +305,11 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
     d = s.copy()
     prev_d = d
     update_gec_save(i, s, d)
+    '''
+    d = three_signal
+    prev_d = three_signal
+    update_gec_save(0, jnp.zeros(siglen).at[0].set(3), jnp.zeros(siglen).at[0].set(3))
+    '''
     
   
   start = time.time()
