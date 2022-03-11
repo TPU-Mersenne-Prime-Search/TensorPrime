@@ -18,6 +18,8 @@ Running settings
  - SaveIter
  - SaveCount
  - SaveCleanup
+ - GECEnabled
+ - GECIter
  
 Network settings
  - UsePrimenet

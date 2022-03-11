@@ -18,10 +18,6 @@ jax.tools.colab_tpu.setup_tpu()
 import config
 import saveload
 
-# Global variables
-GEC_enabled = True
-GEC_iterations = 1000
-
 
 def main():
     print("Starting TensorPrime")
@@ -287,7 +283,8 @@ def update_gec_save(i, s, d):
 
 def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos = 0, s = None):
 
-  start = time.time()
+  GEC_enabled = config.settings["GECEnabled"]
+  GEC_iterations = config.settings["GECIter"]
   # Load settings values for this function
   timestamp = config.settings["Timestamps"]
   # Uses counters to avoid modulo check
@@ -295,7 +292,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
   saveIcount = saveIter
   printIter = config.settings["PrintIter"]
   printIcount = printIter
-  if jnp.shape(s) == None:
+  if s == None:
     s = jnp.zeros(siglen).at[0].set(3)
   i = startPos
 
@@ -306,9 +303,26 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
     d = s.copy()
     prev_d = d
     update_gec_save(i, s, d)
+    
+  
+  start = time.time()
 
   while(i < exponent):
-  
+
+    # Saving
+    if saveIcount == 0:
+      saveload.save(exponent, siglen, s, i)
+      saveIcount = saveIter
+    saveIcount -= 1
+
+    # Printing
+    if timestamp:
+      if printIcount == 0:
+        time_elapsed = time.time() - start
+        print("Time elapsed at iteration ", i, ": ", time_elapsed, ". S = ", s)
+        printIcount = printIter
+      printIcount -= 1
+
     # Gerbicz error checking
     if GEC_enabled:
       # Every L iterations, update d and prev_d
@@ -329,24 +343,12 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
         else:
           print("updating gec_save")
           update_gec_save(i,s,d)
-    
-    # Saving
-    if saveIcount == 0:
-      saveload.save(exponent, siglen, s, i)
-      saveIcount = saveIter
-    saveIcount -= 1
 
+
+    # Running squaremod
     s, roundoff = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
     if roundoff > 0.4375:
       raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
-      
-    # Printing
-    if timestamp:
-      if printIcount == 0:
-        time_elapsed = time.time() - start
-        print("Time elapsed at iteration ", i, ": ", time_elapsed, ". S = ", s)
-        printIcount = printIter
-      printIcount -= 1
 
     i += 1
   return s

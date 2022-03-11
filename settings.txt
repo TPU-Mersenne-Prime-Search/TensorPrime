@@ -6,12 +6,18 @@
 	Calculation settings
 -PrintIter: 100i
 -Timestamps: T
+
 Iterations between saves
 -SaveIter: 200i
 Number of savefiles to keep
 -SaveCount: 10i
 If the program should clear saves after completion
 -SaveCleanup: F
+
+If the program should use Gerbicz Error checking
+-GECEnabled: T
+Gerbicz Error checking interval
+-GECIter: 500i
 
 	Network settings
 -UsePrimenet: F
