@@ -323,7 +323,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
     if timestamp:
       if printIcount == 0:
         time_elapsed = time.time() - start
-        print("Time elapsed at iteration ", i, ": ", time_elapsed, ". S = ", s)
+        print("Time elapsed at iteration ", i, ": ", time_elapsed) #, ". S = ", s)
         printIcount = printIter
       printIcount -= 1
 
