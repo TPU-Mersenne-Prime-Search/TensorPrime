@@ -1,25 +1,24 @@
 	Setup settings
 	(may become command line arguments)
-? Mode (factoring, )
 -Directory: data/
--Threads: ?
 -AutoResume: F
-
-	PRP settings
--Blocksize: 100i
--Bound1: ?
--Bound2: ?
--ProofPower: ?
 
 	Calculation settings
 -PrintIter: 100i
 -Timestamps: T
+
 Iterations between saves
 -SaveIter: 200i
 Number of savefiles to keep
 -SaveCount: 10i
+If the program should clear saves after completion
+-SaveCleanup: F
+
+If the program should use Gerbicz Error checking
+-GECEnabled: T
+Gerbicz Error checking interval
+-GECIter: 500i
 
 	Network settings
 -UsePrimenet: F
-? Data needed to mount a drive file? 
 

@@ -18,10 +18,6 @@ jax.tools.colab_tpu.setup_tpu()
 import config
 import saveload
 
-# Global variables
-GEC_enabled = True
-GEC_iterations = 100
-
 
 def main():
     print("Starting TensorPrime")
@@ -38,20 +34,22 @@ def main():
                         help="perform testing etc")
     parser.add_argument("--siglen", type=int, default=128,
                        help="Power of two used as the signal length")
-    parser.add_argument("-r", "--resume", action="store_true")
+                       
+    parser.add_argument("-r", "--resume", type=int, default = -1,
+                        help="Save to resume from. Most recent is 0")
     
     args = vars(parser.parse_args())
     
     # Get values from memory
     # This WILL override the siglen given from arguments.
-    if args["resume"] or config.settings["AutoResume"]:
-        preval = saveload.load()
+    if args["resume"] != -1 or config.settings["AutoResume"]:
+        preval = saveload.load(args["resume"])
         if preval != None:
             args.update(preval)
         else:
-            args["resume"] = False
+            args["resume"] = -1
     else:
-        args["resume"] = False
+        args["resume"] = -1
         
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
@@ -84,22 +82,26 @@ def main():
         print(f"weight_array: {weight_array}")
         print("Array initialization complete")
         start_time = time.time()
-        s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
-        '''
-        start_time = time.time()
-        is_probable_prime = None
-        # Resume
-        if args["resume"]:
+        
+        s = None
+        if args["resume"] != -1:
             print("Resuming at iteration", args["iteration"])
-            is_probable_prime = probable_prime(p, startPos=args["iteration"], s=args["signal"])
+            s = prptest(p, siglen, bit_array, power_bit_array, weight_array, 
+                startPos=args["iteration"], s=args["signal"],
+                d = args["d"], prev_d = args["d_prev"])
         else:
-            is_probable_prime = probable_prime(p)
-        '''
+            s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
+        
         end_time = time.time()
         print(s)
         is_probable_prime = result_is_nine(s, bit_array, power_bit_array)
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
+                                               
+        # Clean the save files
+        if config.settings["SaveCleanup"]:
+            saveload.clean()
+        
     else:
       print("Usage: python -m main.py -p <exponent> [--siglen <signal length>]")
 
@@ -235,9 +237,7 @@ def squaremod_with_ibdwt(signal, prime_exponent, signal_length, power_bit_array,
     squared_transformed_signal = jnp.multiply(transformed_signal, transformed_signal)
     squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
     rounded_signal = jnp.int32(jnp.round(squared_signal))
-    roundoff = jnp.max(jnp.abs(jnp.subtract(squared_signal, rounded_signal)))
 
-    # Test rounding against threshold. Consider using "max" instead of "sum" if this is too sensitive. 
     roundoff = jnp.max(jnp.abs(jnp.subtract(squared_signal, rounded_signal)))
 
     # Balance the digits ( )
@@ -255,9 +255,7 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
     multiplied_transformed_signal = jnp.multiply(transformed_signal1, transformed_signal2)
     multiplied_signal = inverse_weighted_transform(multiplied_transformed_signal, weight_array)
     rounded_signal = jnp.int32(jnp.round(multiplied_signal))
-    roundoff = jnp.max(jnp.abs(jnp.subtract(multiplied_signal, rounded_signal)))
-
-    # Test rounding against threshold. Consider using "max" instead of "sum" if this is too sensitive. 
+    
     roundoff = jnp.max(jnp.abs(jnp.subtract(multiplied_signal, rounded_signal)))
 
     # Balance the digits ( )
@@ -270,7 +268,11 @@ gec_i_saved = None
 gec_d_saved = None
 
 def rollback():
-  if gec_s_saved == None or gec_i_saved == None or gec_d_saved == None:
+  if jnp.shape(gec_s_saved) == None:
+    raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+  if jnp.shape(gec_d_saved) == None:
+    raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+  if gec_i_saved == None:
     raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
   return gec_i_saved, gec_s_saved, gec_d_saved
 
@@ -279,25 +281,52 @@ def update_gec_save(i, s, d):
     global gec_s_saved
     global gec_d_saved
     gec_i_saved = i
-    gec_s_saved = s
-    gec_d_saved = d
+    gec_s_saved = s.copy()
+    gec_d_saved = d.copy()
 
-def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
-  if GEC_enabled:  
+def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos = 0, s = None, d = None, prev_d = None):
+
+  GEC_enabled = config.settings["GECEnabled"]
+  GEC_iterations = config.settings["GECIter"]
+  # Load settings values for this function
+  timestamp = config.settings["Timestamps"]
+  # Uses counters to avoid modulo check
+  saveIter = config.settings["SaveIter"]
+  saveIcount = saveIter
+  printIter = config.settings["PrintIter"]
+  printIcount = printIter
+  if s == None:
+    s = jnp.zeros(siglen).at[0].set(3)
+  i = startPos
+
+  if GEC_enabled:
     L = GEC_iterations
     L_2 = L*L
     three_signal = jnp.zeros(siglen).at[0].set(3)
-    d = three_signal
-    prev_d = three_signal
-    update_gec_save(0, jnp.zeros(siglen).at[0].set(3), jnp.zeros(siglen).at[0].set(3))
+    if d == None:
+        d = three_signal
+        prev_d = three_signal
+        update_gec_save(0, jnp.zeros(siglen).at[0].set(3), jnp.zeros(siglen).at[0].set(3))
+    
+  
+  start = time.time()
 
-
-  s = jnp.zeros(siglen).at[0].set(3)
-  i = 0
   while(i < exponent):
-    # Print i every 100 iterations to track progress
-    if i%100 == 0:
-      print(i)
+
+    # Saving
+    if saveIcount == 0:
+      saveload.save(exponent, siglen, s, i)
+      saveIcount = saveIter
+    saveIcount -= 1
+
+    # Printing
+    if timestamp:
+      if printIcount == 0:
+        time_elapsed = time.time() - start
+        print("Time elapsed at iteration ", i, ": ", time_elapsed) #, ". S = ", s)
+        printIcount = printIter
+      printIcount -= 1
+
     # Gerbicz error checking
     if GEC_enabled:
       # Every L iterations, update d and prev_d
@@ -316,12 +345,16 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
           i,s,d = rollback()
       
         else:
+          print("updating gec_save")
           update_gec_save(i,s,d)
-          
-    s, roundoff = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
+
+
+    # Running squaremod
+    s, roundoff = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
     if roundoff > 0.4375:
       raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
-    i += 1   
+
+    i += 1
   return s
 
 def result_is_nine(signal, bit_array, power_bit_array):
