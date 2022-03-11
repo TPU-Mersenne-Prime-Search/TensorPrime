@@ -275,7 +275,7 @@ def update_gec_save(i, s, d):
     gec_s_saved = s
     gec_d_saved = d
 
-def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
+def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos = 0, s = None):
 
   start = time.time()
   # Load settings values for this function
@@ -285,22 +285,20 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
   saveIcount = saveIter
   printIter = config.settings["PrintIter"]
   printIcount = printIter
+  if s == None:
+    s = jnp.zeros(siglen).at[0].set(3)
+  i = startPos
 
-  if GEC_enabled:  
+  if GEC_enabled:
     L = GEC_iterations
     L_2 = L*L
     three_signal = jnp.zeros(siglen).at[0].set(3)
-    d = three_signal
-    prev_d = three_signal
-    update_gec_save(0, jnp.zeros(siglen).at[0].set(3), jnp.zeros(siglen).at[0].set(3))
+    d = s.copy()
+    prev_d = d
+    update_gec_save(i, s, d)
 
-
-  s = jnp.zeros(siglen).at[0].set(3)
-  i = 0
   while(i < exponent):
-    # Print i every 100 iterations to track progress
-    if i%100 == 0:
-      print(i)
+  
     # Gerbicz error checking
     if GEC_enabled:
       # Every L iterations, update d and prev_d
@@ -339,11 +337,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array):
         print("Time elapsed at iteration ", i, ": ", time_elapsed, ". S = ", s)
         printIcount = printIter
       printIcount -= 1
-          
-          
-    s, roundoff = multmod_with_ibdwt(s, s, exponent, siglen, power_bit_array, weight_array)
-    if roundoff > 0.4375:
-      raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
+
     i += 1
   return s
 
