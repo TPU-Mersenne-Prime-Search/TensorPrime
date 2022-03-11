@@ -55,8 +55,8 @@ def save(exponent, siglen, signal, iteration, d = None, d_p = None):
     
     if GEC:
         GECvals = np.zeros((2, siglen))
-        GECvals.at[0] = d
-        GECvals.at[1] = d_prev
+        GECvals.at[0].set(d)
+        GECvals.at[1].set(d_p)
         np.save(pathed + "GEC0", GECvals)
     
     

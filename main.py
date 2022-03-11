@@ -34,6 +34,7 @@ def main():
                         help="perform testing etc")
     parser.add_argument("--siglen", type=int, default=128,
                        help="Power of two used as the signal length")
+                       
     parser.add_argument("-r", "--resume", type=int, default = -1,
                         help="Save to resume from. Most recent is 0")
     
@@ -87,7 +88,7 @@ def main():
             print("Resuming at iteration", args["iteration"])
             s = prptest(p, siglen, bit_array, power_bit_array, weight_array, 
                 startPos=args["iteration"], s=args["signal"],
-                d = args["d"], d_prev = args["d_prev"])
+                d = args["d"], prev_d = args["d_prev"])
         else:
             s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
         
@@ -302,14 +303,10 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
     L = GEC_iterations
     L_2 = L*L
     three_signal = jnp.zeros(siglen).at[0].set(3)
-    d = s.copy()
-    prev_d = d
-    update_gec_save(i, s, d)
-    '''
-    d = three_signal
-    prev_d = three_signal
-    update_gec_save(0, jnp.zeros(siglen).at[0].set(3), jnp.zeros(siglen).at[0].set(3))
-    '''
+    if d == None:
+        d = three_signal
+        prev_d = three_signal
+        update_gec_save(0, jnp.zeros(siglen).at[0].set(3), jnp.zeros(siglen).at[0].set(3))
     
   
   start = time.time()
