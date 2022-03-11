@@ -46,14 +46,13 @@ def main():
     # Get values from memory
     # This WILL override the siglen given from arguments.
     if args["resume"] != -1 or config.settings["AutoResume"]:
-        #args["resume"]
-        preval = saveload.load()
+        preval = saveload.load(args["resume"])
         if preval != None:
             args.update(preval)
         else:
-            args["resume"] = False
+            args["resume"] = -1
     else:
-        args["resume"] = False
+        args["resume"] = -1
         
     if not args["prime"]:
         raise ValueError("runtime requires a prime number for testing!")
@@ -88,7 +87,7 @@ def main():
         start_time = time.time()
         
         s = None
-        if args["resume"]:
+        if args["resume"] != -1:
             print("Resuming at iteration", args["iteration"])
             s = prptest(p, siglen, bit_array, power_bit_array, weight_array, startPos=args["iteration"], s=args["signal"])
         else:

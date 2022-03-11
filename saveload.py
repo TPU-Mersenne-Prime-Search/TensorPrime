@@ -46,17 +46,22 @@ def save(exponent, siglen, signal, iteration):
     #.savez(pathed + "0", [config.exponent, iteration, config.signal_length], signal)
     
 
-def load():
+def load(source):
     global pathed
     global extension
     
+    if source == -1:
+        source = 0
+    ext = str(source) + extension
+    
     # Only attempt to load if there is a file to read.
-    if not os.path.exists(pathed + "0" + extension):
+    if not os.path.exists(pathed + ext):
+        print("File does not exist.")
         return None
     
     # Load latest save file
-    filedat = np.load(pathed + "0" + extension, allow_pickle = True)
-    signal = np.load(pathed + "signal0" + extension, allow_pickle = True)
+    filedat = np.load(pathed + ext, allow_pickle = True)
+    signal = np.load(pathed + "signal" + ext, allow_pickle = True)
     
     # The signal length may be the cause of the problem
     # which would require it to be initialized from args
