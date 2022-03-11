@@ -11,7 +11,7 @@ Iterations between saves
 Number of savefiles to keep
 -SaveCount: 10i
 If the program should clear saves after completion
--SaveCleanup: False
+-SaveCleanup: F
 
 	Network settings
 -UsePrimenet: F

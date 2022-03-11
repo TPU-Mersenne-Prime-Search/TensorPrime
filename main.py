@@ -269,11 +269,11 @@ gec_i_saved = None
 gec_d_saved = None
 
 def rollback():
-  if gec_s_saved == None:
+  if jnp.shape(gec_s_saved) == None:
+    raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+  if jnp.shape(gec_d_saved) == None:
     raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
   if gec_i_saved == None:
-    raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
-  if gec_d_saved == None:
     raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
   return gec_i_saved, gec_s_saved, gec_d_saved
 
@@ -295,7 +295,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
   saveIcount = saveIter
   printIter = config.settings["PrintIter"]
   printIcount = printIter
-  if s == None:
+  if jnp.shape(s) == None:
     s = jnp.zeros(siglen).at[0].set(3)
   i = startPos
 
