@@ -10,6 +10,8 @@ Iterations between saves
 -SaveIter: 200i
 Number of savefiles to keep
 -SaveCount: 10i
+If the program should clear saves after completion
+-SaveCleanup: False
 
 	Network settings
 -UsePrimenet: F

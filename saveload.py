@@ -75,3 +75,25 @@ def load(source):
     ids = ["prime", "siglen", "iteration", "signal"]
     
     return zip(ids, vals)
+
+
+def clean(start = 0):
+    global pathed
+    global extension
+    maxsaves = config.settings["SaveCount"]
+    
+    for i in range(start, maxsaves):
+        num = str(i)
+        if os.path.exists(pathed + num + extension):
+            os.remove(pathed + num + extension)
+            os.remove(pathed + "signal" + num + extension)
+        else:
+            print("Cleaned all savefiles.")
+            break
+        
+        
+        
+        
+        
+        
+    

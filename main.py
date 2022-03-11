@@ -98,6 +98,11 @@ def main():
         is_probable_prime = result_is_nine(s, bit_array, power_bit_array)
         print("{} tested in {} sec: {}".format(p, end_time - start_time,
                                                "probably prime!" if is_probable_prime else "composite"))
+                                               
+        # Clean the save files
+        if config.settings["SaveCleanup"]:
+            saveload.clean()
+        
     else:
       print("Usage: python -m main.py -p <exponent> [--siglen <signal length>]")
 

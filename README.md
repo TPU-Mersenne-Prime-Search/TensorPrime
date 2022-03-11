@@ -11,19 +11,13 @@ TODO: Add more comprehensive usage documentation in the wiki
 
 General
  - Directory
- - Threads
-
-PRP settings
- - Blocksize
- - Bound1
- - Bound2
- - ProofPower
 
 Running settings
  - Timestamps
  - PrintIter
  - SaveIter
  - SaveCount
+ - SaveCleanup
  
 Network settings
  - UsePrimenet
