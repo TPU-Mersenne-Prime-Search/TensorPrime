@@ -8,7 +8,7 @@
 -Timestamps: T
 
 Iterations between saves
--SaveIter: 200i
+-SaveIter: 1000i
 Number of savefiles to keep
 -SaveCount: 10i
 If the program should clear saves after completion
