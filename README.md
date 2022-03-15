@@ -2,6 +2,8 @@
 
 This program was developed as part of a two-term senior capstone project at Portland State University. Our goal was to develop a program which uses the Tensor Processing Unit to accelerate the Probable Prime Test, an algorithm for testing the (probable) primality of large [Mersenne numbers](https://mathworld.wolfram.com/MersenneNumber.html).
 
+Currently due to precision issues with the TPU the known primes we are able to check range from `2^7 - 1` to `2^4423 - 1` inclusive. Exponents `2` and `3` are not able to be checked with our program due to the Prime/composite logic checking only if the residue at the end is `9`, which is not possible for those exponents.
+
 See our project [Wiki](https://github.com/TPU-Mersenne-Prime-Search/TensorPrime/wiki) for more details about the project.
 
 # Quickstart
