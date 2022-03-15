@@ -371,6 +371,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
     # Create a save checkpoint every saveIcount
     # iterations.
     if saveIcount == 0:
+      print(f"Saving progress (performed every {saveIter} iterations)...")
       saveload.save(exponent, siglen, s, i)
       saveIcount = saveIter
     saveIcount -= 1
@@ -381,7 +382,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
       if printIcount == 0:
         delta_time = time.time() - current_time
         current_time = time.time()
-        print(f"Time elapsed at iteration {i}: {(current_time - start):.2f} sec, {(delta_time * 1000 / printIcount):.2f} ms/iter")
+        print(f"Time elapsed at iteration {i}: {(current_time - start):.2f} sec, {(delta_time * 1000 / printIter):.2f} ms/iter")
         printIcount = printIter
       printIcount -= 1
 
