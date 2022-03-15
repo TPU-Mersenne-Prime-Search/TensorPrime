@@ -3,11 +3,13 @@ import sys
 import logging
 import time
 import math
+from math import log2, floor
 
 import numpy as np
 
 from log_helper import init_logger
 
+print("Starting TensorPrime")
 import jax
 import jax.numpy as jnp
 from jax import jit, lax, device_put
@@ -20,7 +22,6 @@ import saveload
 
 
 def main():
-    print("Starting TensorPrime")
     parser = argparse.ArgumentParser()
     
     config.getSettings()
@@ -32,7 +33,7 @@ def main():
     parser.add_argument("--fft", type=str, default=None)
     parser.add_argument("--bench", action="store_true",
                         help="perform testing etc")
-    parser.add_argument("--siglen", type=int, default=128,
+    parser.add_argument("--siglen", type=int, default=None,
                        help="Power of two used as the signal length")
                        
     parser.add_argument("-r", "--resume", type=int, default = -1,
@@ -62,16 +63,15 @@ def main():
     # Command line arguments
 
     # Initialize logger specific to our runtime
-    m_logger = init_logger(args)
+    # m_logger = init_logger(args)
     
     p = int(args["prime"])
-    siglen = int(args["siglen"])
+    if args["siglen"] is not None:
+      siglen = int(args["siglen"])
+    else:
+      siglen = 2**(floor(log2(p))-2)
+    print(f"Using FFT length {siglen}")
 
-    if args["bench"] is not None:
-        pass
-
-    if args["fft"] is not None:
-        pass
   
     if p is not None:
         print("Starting Probable Prime Test.")
@@ -201,6 +201,38 @@ def secondcarry(carryval, signal, power_bit_array):
   return signal
 
 @jit
+def partial_carry(signal, power_bit_array):
+    def forloop_body(i, vals):
+        (signal, power_bit_array, carry_values) = vals
+        signal = jnp.add(signal, carry_values)
+        carry_values = jnp.floor_divide(signal, power_bit_array)
+        signal = jnp.mod(signal, power_bit_array)
+        carry_values = jnp.roll(carry_values, 1)
+        return (signal, power_bit_array, carry_values)
+    carry_values = jnp.zeros(signal.shape[0])
+    (signal, power_bit_array, carry_values) = lax.fori_loop(0, 3, forloop_body, (signal, power_bit_array, carry_values))
+    
+    signal = jnp.add(signal, carry_values)
+    return signal
+
+@jit
+def partial_carry_pmap(signal_with_power_array):
+  signal = signal_with_power_array[0]
+  power_bit_array = signal_with_power_array[1]
+  def forloop_body(i, vals):
+      (signal, power_bit_array, carry_values) = vals
+      signal = jnp.add(signal, carry_values)
+      carry_values = jnp.floor_divide(signal, power_bit_array)
+      signal = jnp.mod(signal, power_bit_array)
+      carry_values = jnp.roll(carry_values, 1)
+      return (signal, power_bit_array, carry_values)
+  carry_values = jnp.zeros(signal.shape[0])
+  (signal, power_bit_array, carry_values) = lax.fori_loop(0, 4, forloop_body, (signal, power_bit_array, carry_values))
+  
+  signal = jnp.add(signal, carry_values)
+  return signal
+
+@jit
 def weighted_transform(signal_to_transform, weight_array):
     weighted_signal = jnp.multiply(signal_to_transform, weight_array)
     transformed_weighted_signal = jnp.fft.fft(weighted_signal)
@@ -236,14 +268,12 @@ def squaremod_with_ibdwt(signal, prime_exponent, signal_length, power_bit_array,
     transformed_signal = weighted_transform(balanced_signal, weight_array)
     squared_transformed_signal = jnp.multiply(transformed_signal, transformed_signal)
     squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
-    rounded_signal = jnp.int32(jnp.round(squared_signal))
+    rounded_signal = jnp.round(squared_signal)
 
     roundoff = jnp.max(jnp.abs(jnp.subtract(squared_signal, rounded_signal)))
 
-    # Balance the digits ( )
-    carryval, firstcarried_signal = firstcarry(rounded_signal, power_bit_array)
-    fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
-    return fullycarried_signal, roundoff
+    parially_carried_signal = partial_carry(rounded_signal, power_bit_array)
+    return parially_carried_signal, roundoff
 
 @partial(jit, static_argnums=(2,3,))
 def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bit_array, weight_array):
@@ -254,11 +284,10 @@ def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bi
     transformed_signal2 = weighted_transform(balanced_signal2, weight_array)
     multiplied_transformed_signal = jnp.multiply(transformed_signal1, transformed_signal2)
     multiplied_signal = inverse_weighted_transform(multiplied_transformed_signal, weight_array)
-    rounded_signal = jnp.int32(jnp.round(multiplied_signal))
+    rounded_signal = jnp.round(multiplied_signal)
     
     roundoff = jnp.max(jnp.abs(jnp.subtract(multiplied_signal, rounded_signal)))
 
-    # Balance the digits ( )
     carryval, firstcarried_signal = firstcarry(rounded_signal, power_bit_array)
     fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
     return fullycarried_signal, roundoff
@@ -310,7 +339,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
     
   
   start = time.time()
-
+  current_time = start
   while(i < exponent):
 
     # Saving
@@ -322,8 +351,9 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
     # Printing
     if timestamp:
       if printIcount == 0:
-        time_elapsed = time.time() - start
-        print("Time elapsed at iteration ", i, ": ", time_elapsed) #, ". S = ", s)
+        delta_time = time.time() - current_time
+        current_time = time.time()
+        print(f"Time elapsed at iteration {i}: {(current_time - start):.2f} sec, {(delta_time * 10):.2f} ms/iter")
         printIcount = printIter
       printIcount -= 1
 
@@ -350,11 +380,16 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, startPos
 
 
     # Running squaremod
+    ps = s
     s, roundoff = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
     if roundoff > 0.4375:
+      print(ps)
       raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
 
     i += 1
+  
+  carry_val, s = firstcarry(s, power_bit_array)
+  s = secondcarry(carry_val, s, power_bit_array)
   return s
 
 def result_is_nine(signal, bit_array, power_bit_array):

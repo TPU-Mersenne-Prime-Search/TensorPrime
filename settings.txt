@@ -12,7 +12,7 @@ Iterations between saves
 Number of savefiles to keep
 -SaveCount: 10i
 If the program should clear saves after completion
--SaveCleanup: F
+-SaveCleanup: T
 
 If the program should use Gerbicz Error checking
 -GECEnabled: T

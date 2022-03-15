@@ -117,6 +117,7 @@ def clean(start = 0):
         if os.path.exists(pathed + num + extension):
             os.remove(pathed + num + extension)
             os.remove(pathed + "signal" + num + extension)
+            os.remove(pathed + "GEC" + num + extension)
         else:
             print("Cleaned all savefiles.")
             break
