@@ -1,6 +1,10 @@
 import argparse
+import logging
 import time
-from math import log2, floor
+import math
+from datetime import timedelta
+import platform
+
 import numpy as np
 
 import jax.numpy as jnp
@@ -17,29 +21,127 @@ jax.tools.colab_tpu.setup_tpu()
 
 # Helper functions defined by us in their
 # respective files
-import config
+from config import config
 import saveload
+from log_helper import init_logger
+
+def is_known_mersenne_prime(p):
+    """Returns True if the given Mersenne prime is known, and False otherwise."""
+    primes = frozenset([2, 3, 5, 7, 13, 17, 19, 31, 61, 89, 107, 127, 521, 607, 1279, 2203, 2281, 3217, 4253, 4423, 9689, 9941, 11213, 19937, 21701, 23209, 44497, 86243, 110503, 132049, 216091,
+                       756839, 859433, 1257787, 1398269, 2976221, 3021377, 6972593, 13466917, 20996011, 24036583, 25964951, 30402457, 32582657, 37156667, 42643801, 43112609, 57885161, 74207281, 77232917, 82589933])
+    return p in primes
+
+
+def is_prime(n):
+    """Return True if n is a prime number, else False."""
+    return n >= 2 and not any(
+        n % p == 0 for p in range(2, int(math.sqrt(n)) + 1))
 
 
 def main():
     # Read settings and program arguments
-    parser = argparse.ArgumentParser()
-    config.getSettings()
+    parser = argparse.ArgumentParser(description='TensorPrime')
+    # config.getSettings()
 
     # In order to add more arguments to the parser,
     # attempt a similar declaration to below.
     # Anthing without a dash is becomes ordinal
     # and required
-    parser.add_argument("-p", "--prime", type=int,
-                        help="seed for the mersenne prime being tested", default=None)
-    parser.add_argument("--ll", action="store_true")
-    parser.add_argument("--fft", type=str, default=None)
-    parser.add_argument("--bench", action="store_true",
-                        help="perform testing etc")
-    parser.add_argument("--siglen", type=int, default=None,
-                        help="Power of two used as the signal length")
-    parser.add_argument("-r", "--resume", type=int, default=-1,
-                        help="Save to resume from. Most recent is 0")
+    parser.add_argument('--version', action='version',
+                        version='TensorPrime 1.0')
+    parser.add_argument("-p", "--prime", "--prp", type=int,
+                        help="Run PRP primality test of exponent and exit")
+    parser.add_argument(
+        "--ll", type=int, help="Run LL primality test of exponent and exit")
+    # parser.add_argument("--bench", action="store_true", help="perform testing etc")
+    parser.add_argument("--iters", type=int,
+                        help="Run test for this many iterations and exit")
+    parser.add_argument("-f", "--fft", "--fftlen", "--sig",
+                        "--siglen", type=int, help="FFT/Signal length")
+    parser.add_argument("--shift", type=int,
+                        help="Number of bits to shift the initial seed")
+    parser.add_argument("--prp_base", type=int, default=3, help="PRP base, Default: %(default)s")
+    parser.add_argument("--prp_residue", type=int, choices=range(1, 6), default=1, help="PRP residue type, Default: %(default)s")
+    parser.add_argument("--proof_power", type=int, choices=range(1, 13), default=8,
+                        help="Maximum proof power, every lower power halves storage requirements, but doubles the certification cost, Default: %(default)s")
+    parser.add_argument("--proof_power_mult", type=int, choices=range(1, 5),
+                        help="Proof power multiplier, to simulate a higher proof power by creating a larger proof file")
+    parser.add_argument("-w", "--dir", "--workdir", default=".",
+                        help="Working directory with the work, results and local files, Default: %(default)s (current directory)")
+    parser.add_argument("-i", "--workfile", default="worktodo.txt",
+                        help="Work File filename, Default: '%(default)s'")
+    parser.add_argument("-r", "--resultsfile", default="results.txt",
+                        help="Results File filename, Default: '%(default)s'")
+    parser.add_argument("-l", "--localfile", default="local.ini",
+                        help="Local configuration file filename, Default: '%(default)s'")
+    parser.add_argument("--resume", type=int, default=-1,
+                        help="Savefile/Checkpoint to resume from. Most recent is 0, Default %(default)s")
+    parser.add_argument("-x", "--output_iter", type=int, default=10000,
+                        help="Output/report every this many iterations, Default %(default)s iterations")
+    parser.add_argument("--save_count", type=int, default=2,
+                        help="Number of savefiles/checkpoints to keep (-1 to keep all), Default %(default)s")
+    parser.add_argument("-c", "--save_iters", type=int, default=100000,
+                        help="Write savefile/checkpoint every this many iterations, Default %(default)s iterations")
+    parser.add_argument("--error", action="store_false", default=True,
+                        help="Do Round off error (ROE) checking, Default %(default)s")
+    parser.add_argument("--error_iter", type=int, default=100,
+                        help="Run ROE checking every this many iterations, Default %(default)s iterations")
+    parser.add_argument("-e", "--error_limit", type=float, default=0.4375,
+                        help="Round off error (ROE) limit (0 - 0.47), Default %(default)s")
+    parser.add_argument("--jacobi", action="store_false", default=True,
+                        help="Do Jacobi Error Check (LL only), Default %(default)s")
+    parser.add_argument("--jacobi_iter", type=int, default=100000,
+                        help="Run Jacobi Error Check every this many iterations (LL only), Default %(default)s iterations")
+    parser.add_argument("--gerbicz", action="store_false", default=True,
+                        help="Do Gerbicz Error Check (GEC) (PRP only), Default %(default)s")
+    parser.add_argument("--gerbicz_iter", type=int, default=100000,
+                        help="Run GEC every this many iterations (PRP only), Default %(default)s iterations")
+    parser.add_argument("--proof_files_dir", default=".",
+                        help="Directory to hold large temporary proof files/residues, Default: %(default)s (current directory)")
+    parser.add_argument(
+        "--archive_proofs", help="Directory to archive PRP proof files after upload, Default: %(default)s")
+    parser.add_argument("-u", "--username", default="ANONYMOUS",
+                        help="GIMPS/PrimeNet User ID. Create a GIMPS/PrimeNet account: https://www.mersenne.org/update/. If you do not want a PrimeNet account, you can use ANONYMOUS.")
+    parser.add_argument("-T", "--worktype", type=int, choices=[4, 100, 101, 102, 104, 150, 151, 152, 153, 154, 155, 160, 161], default=150, help="""Type of work, Default: %(default)s,
+4 (P-1 factoring),
+100 (smallest available first-time LL),
+101 (double-check LL),
+102 (world-record-sized first-time LL),
+104 (100M digit number LL),
+150 (smallest available first-time PRP),
+151 (double-check PRP),
+152 (world-record-sized first-time PRP),
+153 (100M digit number PRP),
+154 (smallest available first-time PRP that needs P-1 factoring),
+155 (double-check using PRP with proof),
+160 (first time Mersenne cofactors PRP),
+161 (double-check Mersenne cofactors PRP)
+"""
+                        )
+    parser.add_argument("--cert_work", action="store_false", default=True,
+                        help="Get PRP proof certification work, Default: %default")
+    parser.add_argument("--min_exp", type=int,
+                        help="Minimum exponent to get from PrimeNet (2 - 999,999,999)")
+    parser.add_argument("--max_exp", type=int,
+                        help="Maximum exponent to get from PrimeNet (2 - 999,999,999)")
+    parser.add_argument("-W", "--days_work", type=float, default=3.0,
+                        help="Days of work to queue (1-90 days), Default: %(default)s days. Adds one to num_cache when the time left for the current assignment is less then this number of days.")
+    parser.add_argument("-t", "--hours", type=float, default=6.0,
+                        help="Hours between checkins and sending estimated completion dates, Default: %(default)s hours")
+    parser.add_argument("-s", "--status", action="store_true", default=False,
+                        help="Output a status report and any expected completion dates for all assignments and exit.")
+    parser.add_argument("--upload_proofs", action="store_true", default=False,
+                        help="Report assignment results, upload all PRP proofs and exit. Requires PrimeNet User ID.")
+    parser.add_argument("--unreserve", type=int,
+                        help="Unreserve assignment and exit. Use this only if you are sure you will not be finishing this exponent. Requires that the instance is registered with PrimeNet.")
+    parser.add_argument("--unreserve_all", action="store_true", default=False,
+                        help="Unreserve all assignments and exit. Quit GIMPS immediately. Requires that the instance is registered with PrimeNet.")
+    parser.add_argument("--no_more_work", action="store_true", default=False,
+                        help="Prevent script from getting new assignments and exit. Quit GIMPS after current work completes.")
+    parser.add_argument("-H", "--hostname", default=platform.node(),
+                        help="Optional computer name, Default: %(default)s")
+    parser.add_argument("--hours_day", type=int, default=24,
+                        help="Hours per day you expect to run TensorPrime (1 - 24), Default: %(default)s hours. Used to give better estimated completion dates.")
 
     # args is a dictionary in python types, in a
     # per-flag key-value mapping, which can be
@@ -47,21 +149,23 @@ def main():
     # return the integer passed in.
     args = vars(parser.parse_args())
 
+    # Initialize logger specific to our runtime
+    init_logger("tensorprime.log")
+
+    p = args["prime"]
+    if not p or not is_prime(p):
+        parser.error("runtime requires a prime number for testing!")
+    logging.info(f"Testing p={p}")
+
     # Used for save checkpointing. If a user's
     # program crashes they can resume from an
     # existing save file.
-    if args["resume"] != -1 or config.settings["AutoResume"]:
-        preval = saveload.load(args["resume"])
-        if preval != None:
-            args.update(preval)
-        else:
-            args["resume"] = -1
+    resume = True
+    preval = saveload.load(args["resume"], p)
+    if preval is not None:
+        args.update(preval)
     else:
-        args["resume"] = -1
-
-    if not args["prime"]:
-        raise ValueError("runtime requires a prime number for testing!")
-    print(f"Testing p={args['prime']}")
+        resume = False
 
     # We choose the signal length by rounding down
     # the exponent to the nearest power of 2 and
@@ -71,46 +175,39 @@ def main():
     # working Mersenne prime throws a precision
     # error exception, double the FFT length and try
     # again.
-    p = int(args["prime"])
-    if args["siglen"] is not None:
-        siglen = int(args["siglen"])
+    siglen = args["fft"] if args["fft"] else 1 << int(math.log2(p)) - 2
+    logging.info(f"Using FFT length {siglen}")
+
+    logging.info("Starting TensorPrime")
+    logging.info("Starting Probable Prime Test.")
+    logging.debug("Initializing arrays")
+    bit_array, power_bit_array, weight_array = initialize_constants(
+        p, siglen)
+    logging.debug(f"bit_array: {bit_array}")
+    logging.debug(f"power_bit_array: {power_bit_array}")
+    logging.debug(f"weight_array: {weight_array}")
+    logging.debug("Array initialization complete")
+    start_time = time.perf_counter()
+
+    if resume:
+        logging.info(f"Resuming at iteration {args['iteration']}")
+        s = prptest(p, siglen, bit_array, power_bit_array, weight_array,
+                    start_pos=args["iteration"], s=args["signal"],
+                    d=args["d"], prev_d=args["d_prev"])
     else:
-        siglen = 2 ** (floor(log2(p)) - 2)
-    print(f"Using FFT length {siglen}")
+        s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
 
-    if p is not None:
-        print("Starting TensorPrime")
-        print("Starting Probable Prime Test.")
-        print("Initializing arrays")
-        bit_array, power_bit_array, weight_array = initialize_constants(p, siglen)
-        print(f"bit_array: {bit_array}")
-        print(f"power_bit_array: {power_bit_array}")
-        print(f"weight_array: {weight_array}")
-        print("Array initialization complete")
-        start_time = time.time()
+    end_time = time.perf_counter()
+    logging.debug(s)
+    n = (1 << p) - 1
+    is_probable_prime = result_is_nine(s, power_bit_array, n)
+    logging.info(
+        f"{p} tested in {timedelta(seconds=end_time - start_time)}: {'probably prime!' if is_probable_prime else 'composite'}")
 
-        s = None
-        if args["resume"] != -1:
-            print("Resuming at iteration", args["iteration"])
-            s = prptest(p, siglen, bit_array, power_bit_array, weight_array,
-                        start_pos=args["iteration"], s=args["signal"],
-                        d=args["d"], prev_d=args["d_prev"])
-        else:
-            s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
-
-        end_time = time.time()
-        print(s)
-        is_probable_prime = result_is_nine(s, power_bit_array)
-        print("{} tested in {} sec: {}".format(p, end_time - start_time,
-                                               "probably prime!" if is_probable_prime else "composite"))
-
-        # Clean save checkpoint files now that the
-        # program has finished.
-        if config.settings["SaveCleanup"]:
-            saveload.clean()
-
-    else:
-        print("Usage: python -m main.py -p <exponent> [--siglen <signal length>]")
+    # Clean save checkpoint files now that the
+    # program has finished.
+    if not is_probable_prime or not is_known_mersenne_prime(p):
+        saveload.clean(p)
 
 
 @partial(jit, static_argnums=2)
@@ -149,7 +246,8 @@ def fill_power_bit_array(power_bit_array, bit_array, signal_length):
         power_bit_array = power_bit_array.at[i].set(jnp.power(2, bit_array[i]))
         return (power_bit_array, bit_array)
 
-    (power_bit_array, bit_array) = lax.fori_loop(0, signal_length, body_fn, (power_bit_array, bit_array))
+    (power_bit_array, bit_array) = lax.fori_loop(
+        0, signal_length, body_fn, (power_bit_array, bit_array))
     return power_bit_array
 
 
@@ -178,7 +276,8 @@ def initialize_constants(exponent, signal_length):
     # The maximum possible value of each digit at
     # index i in the signal is power_bit_array[i]-1.
     power_bit_array = jnp.zeros(signal_length, dtype=jnp.float32)
-    power_bit_array = fill_power_bit_array(power_bit_array, bit_array, signal_length)
+    power_bit_array = fill_power_bit_array(
+        power_bit_array, bit_array, signal_length)
 
     # The weight array is an array of fractional
     # powers of two as described in
@@ -206,7 +305,8 @@ def firstcarry(signal, power_bit_array):
         carry_val = jnp.floor_divide(val, base)
         return (carry_val, signal, power_bit_array)
 
-    (carry_val, signal, power_bit_array) = lax.fori_loop(0, signal.shape[0], body_fun, (0, signal, power_bit_array))
+    (carry_val, signal, power_bit_array) = lax.fori_loop(
+        0, signal.shape[0], body_fun, (0, signal, power_bit_array))
 
     return carry_val, signal
 
@@ -235,7 +335,8 @@ def secondcarry(carryval, signal, power_bit_array):
     def wloop_body(vals):
         return lax.fori_loop(0, signal.shape[0], forloop_body, vals)
 
-    (carryval, signal, power_bit_array) = lax.while_loop(wloop_cond, wloop_body, (carryval, signal, power_bit_array))
+    (carryval, signal, power_bit_array) = lax.while_loop(
+        wloop_cond, wloop_body, (carryval, signal, power_bit_array))
     return signal
 
 
@@ -253,7 +354,8 @@ def partial_carry(signal, power_bit_array):
         return (signal, power_bit_array, carry_values)
 
     carry_values = jnp.zeros(signal.shape[0])
-    (signal, power_bit_array, carry_values) = lax.fori_loop(0, 3, forloop_body, (signal, power_bit_array, carry_values))
+    (signal, power_bit_array, carry_values) = lax.fori_loop(
+        0, 3, forloop_body, (signal, power_bit_array, carry_values))
 
     signal = jnp.add(signal, carry_values)
     return signal
@@ -294,7 +396,8 @@ def balance(signal, power_bit_array):
                                        (signal, power_bit_array, i))
         return (signal, carry_val, power_bit_array)
 
-    (signal, carry_val, power_bit_array) = lax.fori_loop(0, signal.shape[0], body_fn, (signal, 0, power_bit_array))
+    (signal, carry_val, power_bit_array) = lax.fori_loop(
+        0, signal.shape[0], body_fn, (signal, 0, power_bit_array))
     signal = signal.at[0].set(signal[0] + carry_val)
     return signal
 
@@ -306,11 +409,14 @@ def balance(signal, power_bit_array):
 # are identical, with the added benefit of 1 fewer
 # FFT runs.
 @partial(jit, static_argnums=(1, 2,))
-def squaremod_with_ibdwt(signal, prime_exponent, signal_length, power_bit_array, weight_array):
+def squaremod_with_ibdwt(signal, prime_exponent,
+                         signal_length, power_bit_array, weight_array):
     balanced_signal = balance(signal, power_bit_array)
     transformed_signal = weighted_transform(balanced_signal, weight_array)
-    squared_transformed_signal = jnp.multiply(transformed_signal, transformed_signal)
-    squared_signal = inverse_weighted_transform(squared_transformed_signal, weight_array)
+    squared_transformed_signal = jnp.multiply(
+        transformed_signal, transformed_signal)
+    squared_signal = inverse_weighted_transform(
+        squared_transformed_signal, weight_array)
     rounded_signal = jnp.round(squared_signal)
     roundoff = jnp.max(jnp.abs(jnp.subtract(squared_signal, rounded_signal)))
     parially_carried_signal = partial_carry(rounded_signal, power_bit_array)
@@ -321,17 +427,22 @@ def squaremod_with_ibdwt(signal, prime_exponent, signal_length, power_bit_array,
 # (mod 2^prime_exponent - 1) as described in
 # "Discrete Weighted Transforms".
 @partial(jit, static_argnums=(2, 3,))
-def multmod_with_ibdwt(signal1, signal2, prime_exponent, signal_length, power_bit_array, weight_array):
+def multmod_with_ibdwt(signal1, signal2, prime_exponent,
+                       signal_length, power_bit_array, weight_array):
     balanced_signal1 = balance(signal1, power_bit_array)
     balanced_signal2 = balance(signal2, power_bit_array)
     transformed_signal1 = weighted_transform(balanced_signal1, weight_array)
     transformed_signal2 = weighted_transform(balanced_signal2, weight_array)
-    multiplied_transformed_signal = jnp.multiply(transformed_signal1, transformed_signal2)
-    multiplied_signal = inverse_weighted_transform(multiplied_transformed_signal, weight_array)
+    multiplied_transformed_signal = jnp.multiply(
+        transformed_signal1, transformed_signal2)
+    multiplied_signal = inverse_weighted_transform(
+        multiplied_transformed_signal, weight_array)
     rounded_signal = jnp.round(multiplied_signal)
-    roundoff = jnp.max(jnp.abs(jnp.subtract(multiplied_signal, rounded_signal)))
+    roundoff = jnp.max(jnp.abs(jnp.subtract(
+        multiplied_signal, rounded_signal)))
     carryval, firstcarried_signal = firstcarry(rounded_signal, power_bit_array)
-    fullycarried_signal = secondcarry(carryval, firstcarried_signal, power_bit_array)
+    fullycarried_signal = secondcarry(
+        carryval, firstcarried_signal, power_bit_array)
     return fullycarried_signal, roundoff
 
 
@@ -345,12 +456,15 @@ gec_d_saved = None
 
 
 def rollback():
-    if jnp.shape(gec_s_saved) == None:
-        raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
-    if jnp.shape(gec_d_saved) == None:
-        raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
-    if gec_i_saved == None:
-        raise Exception("Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+    if jnp.shape(gec_s_saved) is None:
+        raise Exception(
+            "Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+    if jnp.shape(gec_d_saved) is None:
+        raise Exception(
+            "Gerbicz error checking found an error but had nothing to rollback to. Exiting")
+    if gec_i_saved is None:
+        raise Exception(
+            "Gerbicz error checking found an error but had nothing to rollback to. Exiting")
     return gec_i_saved, gec_s_saved, gec_d_saved
 
 
@@ -363,59 +477,58 @@ def update_gec_save(i, s, d):
     gec_d_saved = d.copy()
 
 
-def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, start_pos=0, s=None, d=None, prev_d=None):
+def prptest(exponent, siglen, bit_array, power_bit_array,
+            weight_array, start_pos=0, s=None, d=None, prev_d=None):
     # Load settings values for this function
-    GEC_enabled = config.settings["GECEnabled"]
-    GEC_iterations = config.settings["GECIter"]
-    timestamp = config.settings["Timestamps"]
+    GEC_enabled = config.getboolean(None, "GECEnabled")
+    GEC_iterations = int(config.get(None, "GECIter"))
 
     # Uses counters to avoid modulo check
-    save_iter = config.settings["SaveIter"]
-    save_i_count = save_iter
-    print_iter = config.settings["PrintIter"]
-    print_i_count = print_iter
-    if s == None:
+    save_i_count = save_iter = int(config.get(None, "SaveIter"))
+    print_i_count = print_iter = int(config.get(None, "PrintIter"))
+    if s is None:
         s = jnp.zeros(siglen).at[0].set(3)
     i = start_pos
 
-    start = time.time()
-    current_time = start
+    current_time = start = time.perf_counter_ns()
     while i < exponent:
         # Create a save checkpoint every save_i_count
         # iterations.
         if save_i_count == 0:
-            print(f"Saving progress (performed every {save_iter} iterations)...")
+            logging.info(
+                f"Saving progress (performed every {save_iter} iterations)...")
             saveload.save(exponent, siglen, s, i)
             save_i_count = save_iter
         save_i_count -= 1
 
         # Print a progress update every print_i_count
         # iterations
-        if timestamp:
-            if print_i_count == 0:
-                delta_time = time.time() - current_time
-                current_time = time.time()
-                print(
-                    f"Time elapsed at iteration {i}: {(current_time - start):.2f} sec, {(delta_time * 1000 / print_iter):.2f} ms/iter")
-                print_i_count = print_iter
-            print_i_count -= 1
+        if print_i_count == 0:
+            temp = time.perf_counter_ns()
+            delta_time = temp - current_time
+            current_time = temp
+            logging.info(
+                f"Time elapsed at iteration {i}: {timedelta(microseconds=(current_time - start) // 1000)}, {(delta_time / 1000) / print_iter:.2f} us/iter")
+            print_i_count = print_iter
+        print_i_count -= 1
 
         # Gerbicz error checking
         if GEC_enabled:
             L = GEC_iterations
             L_2 = L * L
             three_signal = jnp.zeros(siglen).at[0].set(3)
-            if d == None:
-                d = three_signal
-                prev_d = three_signal
-                update_gec_save(0, jnp.zeros(siglen).at[0].set(3), jnp.zeros(siglen).at[0].set(3))
+            if d is None:
+                prev_d = d = three_signal
+                update_gec_save(i, s, d)
 
             # Every L iterations, update d and prev_d
             if i != 0 and i % L == 0:
                 prev_d = d
-                d, roundoff = multmod_with_ibdwt(d, s, exponent, siglen, power_bit_array, weight_array)
+                d, roundoff = multmod_with_ibdwt(
+                    d, s, exponent, siglen, power_bit_array, weight_array)
             # Every L^2 iterations, check the current d value with and independently calculated d
-            if (i != 0 and i % L_2 == 0) or (i % L == 0 and (i + L > exponent)):
+            if (i != 0 and i % L_2 == 0) or (i %
+                                             L == 0 and (i + L > exponent)):
                 prev_d_pow_signal = prev_d
                 for j in range(L):
                     prev_d_pow_signal, roundoff = squaremod_with_ibdwt(prev_d_pow_signal, exponent, siglen,
@@ -424,22 +537,26 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, start_po
                                                            power_bit_array, weight_array)
 
                 if not jnp.array_equal(d, check_value):
-                    print("error occurred. rolling back to last save.")
+                    logging.error("error occurred. rolling back to last save.")
                     i, s, d = rollback()
 
                 else:
-                    print("updating gec_save")
+                    logging.info("updating gec_save")
                     update_gec_save(i, s, d)
 
         # Running squaremod
-        s, roundoff = squaremod_with_ibdwt(s, exponent, siglen, power_bit_array, weight_array)
+        s, roundoff = squaremod_with_ibdwt(
+            s, exponent, siglen, power_bit_array, weight_array)
 
         # Quick check to avoid roundoff errors. If a
         # roundoff error is encountered we have no
         # current method for dealing with it, so throw
         # an exception and terminate the program.
-        if roundoff > 0.4375:
-            raise Exception(f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
+        if roundoff > 0.40625:
+            logging.warning(f"Roundoff (iteration {i}): {roundoff}")
+            if roundoff > 0.4375:
+                raise Exception(
+                    f"Roundoff error exceeded threshold (iteration {i}): {roundoff} vs 0.4375")
 
         i += 1
 
@@ -455,16 +572,16 @@ def prptest(exponent, siglen, bit_array, power_bit_array, weight_array, start_po
 # Sum up the values in the signal until the total
 # is 9. If there are any values left in the signal
 # we know the total value cannot be 9.
-def result_is_nine(signal, power_bit_array):
+def result_is_nine(signal, power_bit_array, n):
     signal = np.array(signal)  # copy signal array to CPU
-    res = 0
-    base = 0
+    res = base = 0
     i = 0
-    while res < 9 and i < signal.shape[0]:
-        res += int(signal[i]) * (2 ** base)
+    nine = 9 % n
+    while res < nine and i < signal.shape[0]:
+        res += int(signal[i]) * (1 << base)
         base += int(power_bit_array[i])
         i += 1
-    return (res == 9) and (not signal[i:].any())
+    return res == nine and not signal[i:].any()
 
 
 # Kick off the main() function after defining
