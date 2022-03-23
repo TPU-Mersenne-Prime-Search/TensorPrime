@@ -60,8 +60,10 @@ def main():
                         "--siglen", type=int, help="FFT/Signal length")
     parser.add_argument("--shift", type=int,
                         help="Number of bits to shift the initial seed")
-    parser.add_argument("--prp_base", type=int, default=3, help="PRP base, Default: %(default)s")
-    parser.add_argument("--prp_residue", type=int, choices=range(1, 6), default=1, help="PRP residue type, Default: %(default)s")
+    parser.add_argument("--prp_base", type=int, default=3,
+                        help="PRP base, Default: %(default)s")
+    parser.add_argument("--prp_residue", type=int, choices=range(1, 6),
+                        default=1, help="PRP residue type, Default: %(default)s")
     parser.add_argument("--proof_power", type=int, choices=range(1, 13), default=8,
                         help="Maximum proof power, every lower power halves storage requirements, but doubles the certification cost, Default: %(default)s")
     parser.add_argument("--proof_power_mult", type=int, choices=range(1, 5),
@@ -84,16 +86,26 @@ def main():
                         help="Write savefile/checkpoint every this many iterations, Default %(default)s iterations")
     parser.add_argument("--error", action="store_false", default=True,
                         help="Do Round off error (ROE) checking, Default %(default)s")
+    # Prime95/MPrime: if near FFT length limit 1/else 128 iterations (ErrorCheck), if near FFT length limit 0.421875/else 0.40625 (MaxRoundoffError)
+    # Mlucas: 1 iterations, 0.40625 warn/0.4375 error,
+    # CUDALucas: 100 iterations (ErrorIterations, must have form k*10^m for k = 1, 2, or 5), 
+        # 40 (-e, ErrorLimit, must be 1-47), thus (ErrorLimit - ErrorLimit / 8.0 * log(ErrorIterations) / log(100.0)) / 100.0 = 0.35 (up to 0.41125)
+    # [print("ErrorLimit:", i, "ErrorIterations:", j, "ROE:", (i - i / 8.0 * math.log(j) / math.log(100.0)) / 100.0) for i in range(1, 48) for j in (k*(10**m) for m in range(3) for k in (1, 2, 5))]
     parser.add_argument("--error_iter", type=int, default=100,
                         help="Run ROE checking every this many iterations, Default %(default)s iterations")
     parser.add_argument("-e", "--error_limit", type=float, default=0.4375,
                         help="Round off error (ROE) limit (0 - 0.47), Default %(default)s")
     parser.add_argument("--jacobi", action="store_false", default=True,
                         help="Do Jacobi Error Check (LL only), Default %(default)s")
+    # Prime95/MPrime: 12 hours (JacobiErrorCheckingInterval)
+    # GpuOwl v6.11: 500,000 iterations (must divide 10,000, usage says 1,000,000 iterations)
     parser.add_argument("--jacobi_iter", type=int, default=100000,
                         help="Run Jacobi Error Check every this many iterations (LL only), Default %(default)s iterations")
     parser.add_argument("--gerbicz", action="store_false", default=True,
                         help="Do Gerbicz Error Check (GEC) (PRP only), Default %(default)s")
+    # Prime95/MPrime: 1,000, 1,000,000 iterations (PRPGerbiczCompareInterval),
+    # Mlucas: 1,000, 1,000,000 iterations,
+    # GpuOwl: 400 (-block <value>, must divide 10,000), 200,000 iterations (-log <step> value, must divide 10,000)
     parser.add_argument("--gerbicz_iter", type=int, default=100000,
                         help="Run GEC every this many iterations (PRP only), Default %(default)s iterations")
     parser.add_argument("--proof_files_dir", default=".",
@@ -480,12 +492,12 @@ def update_gec_save(i, s, d):
 def prptest(exponent, siglen, bit_array, power_bit_array,
             weight_array, start_pos=0, s=None, d=None, prev_d=None):
     # Load settings values for this function
-    GEC_enabled = config.getboolean(None, "GECEnabled")
-    GEC_iterations = int(config.get(None, "GECIter"))
+    GEC_enabled = config.getboolean("TensorPrime", "GECEnabled")
+    GEC_iterations = int(config.get("TensorPrime", "GECIter"))
 
     # Uses counters to avoid modulo check
-    save_i_count = save_iter = int(config.get(None, "SaveIter"))
-    print_i_count = print_iter = int(config.get(None, "PrintIter"))
+    save_i_count = save_iter = int(config.get("TensorPrime", "SaveIter"))
+    print_i_count = print_iter = int(config.get("TensorPrime", "PrintIter"))
     if s is None:
         s = jnp.zeros(siglen).at[0].set(3)
     i = start_pos
@@ -514,7 +526,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array,
 
         # Gerbicz error checking
         if GEC_enabled:
-            L = GEC_iterations
+            L = int(math.sqrt(GEC_iterations))
             L_2 = L * L
             three_signal = jnp.zeros(siglen).at[0].set(3)
             if d is None:

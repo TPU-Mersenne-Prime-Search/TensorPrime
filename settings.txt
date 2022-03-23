@@ -1,6 +1,6 @@
 #	Setup settings
 #	(may become command line arguments)
-[DEFAULT]
+[TensorPrime]
 Directory = data
 AutoResume = True
 

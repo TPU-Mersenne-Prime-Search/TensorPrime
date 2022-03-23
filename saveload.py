@@ -14,21 +14,21 @@ extension = ".npy"
 # Saves data required to re-initialize the search
 def save(exponent, siglen, signal, iteration, d=None, d_p=None):
     # Get highest save
-    maxsaves = int(config.get(None, "SaveCount"))
+    max_saves = int(config.get("TensorPrime", "SaveCount"))
 
     # Extra work for Gerbicz error checking
-    GEC = config.getboolean(None, "GECEnabled")
+    GEC = config.getboolean("TensorPrime", "GECEnabled")
 
-    for i in range(maxsaves):
+    for i in range(max_saves):
         # Count to highest stored
-        if i + 1 < maxsaves and os.path.exists(os.path.join(pathed, f"{exponent}-{i}{extension}")):
+        if i + 1 < max_saves and os.path.exists(os.path.join(pathed, f"{exponent}-{i}{extension}")):
             continue
 
         # Remove oldest saves if maximum is reached
-        if i + 1 == maxsaves and os.path.exists(os.path.join(
-                pathed, f"{exponent}-{maxsaves - 1}{extension}")):
+        if i + 1 == max_saves and os.path.exists(os.path.join(
+                pathed, f"{exponent}-{max_saves - 1}{extension}")):
             os.remove(os.path.join(
-                pathed, f"{exponent}-{maxsaves - 1}{extension}"))
+                pathed, f"{exponent}-{max_saves - 1}{extension}"))
 
         # Increment saves
         for x in range(i):
@@ -74,12 +74,12 @@ def load(source, exponent):
             "iteration": filedat[2], "signal": filedat[3]}
 
     # Extra work for Gerbicz error checking
-    GEC = config.getboolean(None, "GECEnabled")
+    GEC = config.getboolean("TensorPrime", "GECEnabled")
 
     if GEC:
         if len(filedat) == 4:
             logging.warning("No GEC file found, Disabling.")
-            config.set(None, "GECEnabled", False)
+            config.set("TensorPrime", "GECEnabled", False)
         else:
             vals["d"] = filedat[4]
             vals["d_prev"] = filedat[5]
@@ -88,9 +88,9 @@ def load(source, exponent):
 
 
 def clean(exponent, start=0):
-    maxsaves = int(config.get(None, "SaveCount"))
+    max_saves = int(config.get("TensorPrime", "SaveCount"))
 
-    for i in range(start, maxsaves):
+    for i in range(start, max_saves):
         file = os.path.join(pathed, f"{exponent}-{i}{extension}")
         if os.path.exists(file):
             os.remove(file)
