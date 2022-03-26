@@ -1,24 +1,25 @@
-	Setup settings
-	(may become command line arguments)
--Directory: data/
--AutoResume: F
+#	Setup settings
+#	(may become command line arguments)
+[TensorPrime]
+Directory = data
+AutoResume = True
 
-	Calculation settings
--PrintIter: 100i
--Timestamps: T
+#	Calculation settings
+PrintIter = 1000
+Timestamps = True
 
-Iterations between saves
--SaveIter: 1000i
-Number of savefiles to keep
--SaveCount: 10i
-If the program should clear saves after completion
--SaveCleanup: T
+# Iterations between saves
+SaveIter = 10000
+# Number of savefiles to keep
+SaveCount = 10
+# If the program should clear saves after completion
+SaveCleanup = True
 
-If the program should use Gerbicz Error checking
--GECEnabled: T
-Gerbicz Error checking interval
--GECIter: 500i
+# If the program should use Gerbicz Error checking
+GECEnabled = True
+# Gerbicz Error checking interval
+GECIter = 10000
 
-	Network settings
--UsePrimenet: F
+#	Network settings
+UsePrimenet = True
 

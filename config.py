@@ -1,34 +1,20 @@
-settings = None
+from configparser import ConfigParser, Error as ConfigParserError
+import logging
 
 
-# Returns settings in the form of a dictionary
-def getSettings():
-    file = open("settings.txt", "r")
-    global settings
+def config_read():
+    """Reads the configuration file."""
+    config = ConfigParser()
+    config.optionxform = lambda option: option
+    localfile = "settings.txt"
+    try:
+        config.read([localfile])
+    except ConfigParserError as e:
+        logging.exception("ERROR reading '{0}' file:".format(localfile))
+    if not config.has_section("PrimeNet"):
+        # Create the section to avoid having to test for it later
+        config.add_section("PrimeNet")
+    return config
 
-    # Dictionary contains all settings as key value pairs
-    settings = {}
-    lines = file.readlines()
 
-    for line in lines:
-        # Only process arguments
-        if line[0] == "-":
-            # Reform
-            cuts = line.partition(":")
-            idv = cuts[0][1:]
-            value = cuts[2].strip()
-
-            # Convert values
-            if value == "T":
-                value = True
-            elif value == "F":
-                value = False
-            elif value[len(value) - 1] == "i":
-                value = int(value[:len(value) - 1])
-
-            # Add to dictionary
-            settings.update({idv: value})
-
-    file.close()
-    # Dictionary to variables?
-    # return settings
+config = config_read()
