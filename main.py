@@ -11,13 +11,9 @@ import jax.numpy as jnp
 from jax import jit, lax, device_put
 from functools import partial
 
-# This is where we connect to a Colab TPU
-# If testing TensorPrime on the GPU or CPU,
-# these lines will need to be commented out or
-# removed.
-import jax.tools.colab_tpu
-
-jax.tools.colab_tpu.setup_tpu()
+if 'google.colab' in str(get_ipython()) and 'COLAB_TPU_ADDR' in os.environ:
+    import jax.tools.colab_tpu
+    jax.tools.colab_tpu.setup_tpu()
 
 # Helper functions defined by us in their
 # respective files
