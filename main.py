@@ -154,7 +154,7 @@ def main():
                         help="Optional computer name, Default: %(default)s")
     parser.add_argument("--hours_day", type=int, default=24,
                         help="Hours per day you expect to run TensorPrime (1 - 24), Default: %(default)s hours. Used to give better estimated completion dates.")
-    parser.add_argument("--64-bit", type=bool, default=False,
+    parser.add_argument("--64-bit", action="store_true", default=False,
                         help="Enable 64 bit on Jax")
     
     # args is a dictionary in python types, in a
