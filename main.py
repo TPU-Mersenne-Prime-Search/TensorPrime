@@ -22,6 +22,9 @@ from config import config
 import saveload
 from log_helper import init_logger
 
+# controls precision globally
+jnp_precision = jnp.float32
+
 def is_known_mersenne_prime(p):
     """Returns True if the given Mersenne prime is known, and False otherwise."""
     primes = frozenset([2, 3, 5, 7, 13, 17, 19, 31, 61, 89, 107, 127, 521, 607, 1279, 2203, 2281, 3217, 4253, 4423, 9689, 9941, 11213, 19937, 21701, 23209, 44497, 86243, 110503, 132049, 216091,
@@ -164,6 +167,8 @@ def main():
     if args["64_bit"]:
         from jax.config import config as jax_config
         jax_config.update("jax_enable_x64", True)
+        global jnp_precision
+        jnp_precision = jnp.float64
 
     # Initialize logger specific to our runtime
     init_logger("tensorprime.log")
@@ -286,19 +291,19 @@ def fill_weight_array(weight_array, exponent, signal_length):
 def initialize_constants(exponent, signal_length):
     # Each digit in the signal at index i can occupy
     # at most bit_array[i] bits.
-    bit_array = jnp.zeros(signal_length, dtype=jnp.float32)
+    bit_array = jnp.zeros(signal_length, dtype=jnp_precision)
     bit_array = fill_bit_array(bit_array, exponent, signal_length)
 
     # The maximum possible value of each digit at
     # index i in the signal is power_bit_array[i]-1.
-    power_bit_array = jnp.zeros(signal_length, dtype=jnp.float32)
+    power_bit_array = jnp.zeros(signal_length, dtype=jnp_precision)
     power_bit_array = fill_power_bit_array(
         power_bit_array, bit_array, signal_length)
 
     # The weight array is an array of fractional
     # powers of two as described in
     # "Discrete Weighted Transforms"
-    weight_array = jnp.zeros(signal_length, dtype=jnp.float32)
+    weight_array = jnp.zeros(signal_length, dtype=jnp_precision)
     weight_array = fill_weight_array(weight_array, exponent, signal_length)
 
     return bit_array, power_bit_array, weight_array
