@@ -1,3 +1,4 @@
+import os
 import argparse
 import logging
 import time
@@ -11,7 +12,7 @@ import jax.numpy as jnp
 from jax import jit, lax, device_put
 from functools import partial
 
-if 'google.colab' in str(get_ipython()) and 'COLAB_TPU_ADDR' in os.environ:
+if 'COLAB_TPU_ADDR' in os.environ:
     import jax.tools.colab_tpu
     jax.tools.colab_tpu.setup_tpu()
 
@@ -20,6 +21,9 @@ if 'google.colab' in str(get_ipython()) and 'COLAB_TPU_ADDR' in os.environ:
 from config import config
 import saveload
 from log_helper import init_logger
+
+# controls precision globally
+jnp_precision = jnp.float32
 
 def is_known_mersenne_prime(p):
     """Returns True if the given Mersenne prime is known, and False otherwise."""
@@ -150,12 +154,21 @@ def main():
                         help="Optional computer name, Default: %(default)s")
     parser.add_argument("--hours_day", type=int, default=24,
                         help="Hours per day you expect to run TensorPrime (1 - 24), Default: %(default)s hours. Used to give better estimated completion dates.")
-
+    parser.add_argument("--64-bit", action="store_true", default=False,
+                        help="Enable 64 bit on Jax")
+    
     # args is a dictionary in python types, in a
     # per-flag key-value mapping, which can be
     # accessed via, eg, flags["prime"], which will
     # return the integer passed in.
     args = vars(parser.parse_args())
+    
+    # enable 64 bit support
+    if args["64_bit"]:
+        from jax.config import config as jax_config
+        jax_config.update("jax_enable_x64", True)
+        global jnp_precision
+        jnp_precision = jnp.float64
 
     # Initialize logger specific to our runtime
     init_logger("tensorprime.log")
@@ -278,19 +291,19 @@ def fill_weight_array(weight_array, exponent, signal_length):
 def initialize_constants(exponent, signal_length):
     # Each digit in the signal at index i can occupy
     # at most bit_array[i] bits.
-    bit_array = jnp.zeros(signal_length, dtype=jnp.float32)
+    bit_array = jnp.zeros(signal_length, dtype=jnp_precision)
     bit_array = fill_bit_array(bit_array, exponent, signal_length)
 
     # The maximum possible value of each digit at
     # index i in the signal is power_bit_array[i]-1.
-    power_bit_array = jnp.zeros(signal_length, dtype=jnp.float32)
+    power_bit_array = jnp.zeros(signal_length, dtype=jnp_precision)
     power_bit_array = fill_power_bit_array(
         power_bit_array, bit_array, signal_length)
 
     # The weight array is an array of fractional
     # powers of two as described in
     # "Discrete Weighted Transforms"
-    weight_array = jnp.zeros(signal_length, dtype=jnp.float32)
+    weight_array = jnp.zeros(signal_length, dtype=jnp_precision)
     weight_array = fill_weight_array(weight_array, exponent, signal_length)
 
     return bit_array, power_bit_array, weight_array
