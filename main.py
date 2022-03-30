@@ -1,3 +1,4 @@
+import os
 import argparse
 import logging
 import time
@@ -11,7 +12,7 @@ import jax.numpy as jnp
 from jax import jit, lax, device_put
 from functools import partial
 
-if 'google.colab' in str(get_ipython()) and 'COLAB_TPU_ADDR' in os.environ:
+if 'COLAB_TPU_ADDR' in os.environ:
     import jax.tools.colab_tpu
     jax.tools.colab_tpu.setup_tpu()
 
