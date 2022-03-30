@@ -151,12 +151,19 @@ def main():
                         help="Optional computer name, Default: %(default)s")
     parser.add_argument("--hours_day", type=int, default=24,
                         help="Hours per day you expect to run TensorPrime (1 - 24), Default: %(default)s hours. Used to give better estimated completion dates.")
-
+    parser.add_argument("--64-bit", type=bool, default=False,
+                        help="Enable 64 bit on Jax")
+    
     # args is a dictionary in python types, in a
     # per-flag key-value mapping, which can be
     # accessed via, eg, flags["prime"], which will
     # return the integer passed in.
     args = vars(parser.parse_args())
+    
+    # enable 64 bit support
+    if args["64_bit"]:
+        from jax.config import config as jax_config
+        jax_config.update("jax_enable_x64", True)
 
     # Initialize logger specific to our runtime
     init_logger("tensorprime.log")
