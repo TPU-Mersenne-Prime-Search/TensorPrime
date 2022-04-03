@@ -195,8 +195,8 @@ def main():
     # working Mersenne prime throws a precision
     # error exception, double the FFT length and try
     # again.
-    siglen = args.fft if args.fft else 1 << int(
-        math.log2(p / (10 if getattr(args, "64_bit") else 2.5)))
+    siglen = args.fft if args.fft else 1 << max(
+        1, int(math.log2(p / (10 if getattr(args, "64_bit") else 2.5))))
     logging.info(f"Using FFT length {siglen}")
 
     logging.info("Starting TensorPrime")
@@ -529,7 +529,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array,
             delta_time = temp - current_time
             current_time = temp
             logging.info(
-                f"Time elapsed at iteration {i}: {timedelta(microseconds=(current_time - start) // 1000)}, {(delta_time / 1000) / print_iter:.2f} us/iter")
+                f"Time elapsed at iteration {i}: {timedelta(microseconds=(current_time - start) // 1000)}, {(delta_time / 1000) / print_iter:.2f} µs/iter")
             print_i_count = print_iter
         print_i_count -= 1
 
