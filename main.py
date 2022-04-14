@@ -196,7 +196,7 @@ def main():
     # error exception, double the FFT length and try
     # again.
     siglen = args.fft if args.fft else 1 << max(
-        1, int(math.log2(p / (10 if getattr(args, "64_bit") else 2.5))))
+        0, int(math.log2(p / (10 if getattr(args, "64_bit") else 2.5))))
     logging.info(f"Using FFT length {siglen}")
 
     logging.info("Starting TensorPrime")
@@ -385,13 +385,13 @@ def partial_carry(signal, power_bit_array):
 @jit
 def weighted_transform(signal_to_transform, weight_array):
     weighted_signal = jnp.multiply(signal_to_transform, weight_array)
-    transformed_weighted_signal = jnp.fft.fft(weighted_signal)
+    transformed_weighted_signal = jnp.fft.rfft(weighted_signal)
     return transformed_weighted_signal
 
 
 @jit
 def inverse_weighted_transform(transformed_weighted_signal, weight_array):
-    weighted_signal = jnp.real(jnp.fft.ifft(transformed_weighted_signal))
+    weighted_signal = jnp.fft.irfft(transformed_weighted_signal)
     signal = jnp.divide(weighted_signal, weight_array)
     return signal
 
@@ -548,8 +548,8 @@ def prptest(exponent, siglen, bit_array, power_bit_array,
                 d, roundoff = multmod_with_ibdwt(
                     d, s, exponent, siglen, power_bit_array, weight_array)
             # Every L^2 iterations, check the current d value with and independently calculated d
-            if (i != 0 and i % L_2 == 0) or (i %
-                                             L == 0 and (i + L > exponent)):
+            if i != 0 and (i % L_2 == 0 or (
+                    i % L == 0 and i + L > exponent)):
                 prev_d_pow_signal = prev_d
                 for j in range(L):
                     prev_d_pow_signal, roundoff = squaremod_with_ibdwt(prev_d_pow_signal, exponent, siglen,
