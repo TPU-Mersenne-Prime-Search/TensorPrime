@@ -25,6 +25,7 @@ from log_helper import init_logger
 # controls precision globally
 jnp_precision = jnp.float32
 
+
 def is_known_mersenne_prime(p):
     """Returns True if the given Mersenne prime is known, and False otherwise."""
     primes = frozenset([2, 3, 5, 7, 13, 17, 19, 31, 61, 89, 107, 127, 521, 607, 1279, 2203, 2281, 3217, 4253, 4423, 9689, 9941, 11213, 19937, 21701, 23209, 44497, 86243, 110503, 132049, 216091,
@@ -88,7 +89,7 @@ def main():
                         help="Do Round off error (ROE) checking, Default %(default)s")
     # Prime95/MPrime: if near FFT length limit 1/else 128 iterations (ErrorCheck), if near FFT length limit 0.421875/else 0.40625 (MaxRoundoffError)
     # Mlucas: 1 iterations, 0.40625 warn/0.4375 error,
-    # CUDALucas: 100 iterations (ErrorIterations, must have form k*10^m for k = 1, 2, or 5), 
+    # CUDALucas: 100 iterations (ErrorIterations, must have form k*10^m for k = 1, 2, or 5),
         # 40 (-e, ErrorLimit, must be 1-47), thus (ErrorLimit - ErrorLimit / 8.0 * log(ErrorIterations) / log(100.0)) / 100.0 = 0.35 (up to 0.41125)
     # [print("ErrorLimit:", i, "ErrorIterations:", j, "ROE:", (i - i / 8.0 * math.log(j) / math.log(100.0)) / 100.0) for i in range(1, 48) for j in (k*(10**m) for m in range(3) for k in (1, 2, 5))]
     parser.add_argument("--error_iter", type=int, default=100,
@@ -156,15 +157,15 @@ def main():
                         help="Hours per day you expect to run TensorPrime (1 - 24), Default: %(default)s hours. Used to give better estimated completion dates.")
     parser.add_argument("--64-bit", action="store_true", default=False,
                         help="Enable 64 bit on Jax")
-    
+
     # args is a dictionary in python types, in a
     # per-flag key-value mapping, which can be
     # accessed via, eg, flags["prime"], which will
     # return the integer passed in.
-    args = vars(parser.parse_args())
-    
+    args = parser.parse_args()
+
     # enable 64 bit support
-    if args["64_bit"]:
+    if getattr(args, "64_bit"):
         from jax.config import config as jax_config
         jax_config.update("jax_enable_x64", True)
         global jnp_precision
@@ -173,7 +174,7 @@ def main():
     # Initialize logger specific to our runtime
     init_logger("tensorprime.log")
 
-    p = args["prime"]
+    p = args.prime
     if not p or not is_prime(p):
         parser.error("runtime requires a prime number for testing!")
     logging.info(f"Testing p={p}")
@@ -182,10 +183,8 @@ def main():
     # program crashes they can resume from an
     # existing save file.
     resume = True
-    preval = saveload.load(args["resume"], p)
-    if preval is not None:
-        args.update(preval)
-    else:
+    preval = saveload.load(args.resume, p)
+    if preval is None:
         resume = False
 
     # We choose the signal length by rounding down
@@ -196,7 +195,8 @@ def main():
     # working Mersenne prime throws a precision
     # error exception, double the FFT length and try
     # again.
-    siglen = args["fft"] if args["fft"] else 1 << int(math.log2(p)) - 2
+    siglen = args.fft if args.fft else 1 << max(
+        0, int(math.log2(p / (10 if getattr(args, "64_bit") else 2.5))))
     logging.info(f"Using FFT length {siglen}")
 
     logging.info("Starting TensorPrime")
@@ -211,10 +211,10 @@ def main():
     start_time = time.perf_counter()
 
     if resume:
-        logging.info(f"Resuming at iteration {args['iteration']}")
+        logging.info(f"Resuming at iteration {preval['iteration']}")
         s = prptest(p, siglen, bit_array, power_bit_array, weight_array,
-                    start_pos=args["iteration"], s=args["signal"],
-                    d=args["d"], prev_d=args["d_prev"])
+                    start_pos=preval["iteration"], s=preval["signal"],
+                    d=preval["d"], prev_d=preval["d_prev"])
     else:
         s = prptest(p, siglen, bit_array, power_bit_array, weight_array)
 
@@ -385,13 +385,13 @@ def partial_carry(signal, power_bit_array):
 @jit
 def weighted_transform(signal_to_transform, weight_array):
     weighted_signal = jnp.multiply(signal_to_transform, weight_array)
-    transformed_weighted_signal = jnp.fft.fft(weighted_signal)
+    transformed_weighted_signal = jnp.fft.rfft(weighted_signal)
     return transformed_weighted_signal
 
 
 @jit
 def inverse_weighted_transform(transformed_weighted_signal, weight_array):
-    weighted_signal = jnp.real(jnp.fft.ifft(transformed_weighted_signal))
+    weighted_signal = jnp.fft.irfft(transformed_weighted_signal)
     signal = jnp.divide(weighted_signal, weight_array)
     return signal
 
@@ -529,7 +529,7 @@ def prptest(exponent, siglen, bit_array, power_bit_array,
             delta_time = temp - current_time
             current_time = temp
             logging.info(
-                f"Time elapsed at iteration {i}: {timedelta(microseconds=(current_time - start) // 1000)}, {(delta_time / 1000) / print_iter:.2f} us/iter")
+                f"Time elapsed at iteration {i}: {timedelta(microseconds=(current_time - start) // 1000)}, {(delta_time / 1000) / print_iter:.2f} µs/iter")
             print_i_count = print_iter
         print_i_count -= 1
 
@@ -548,8 +548,8 @@ def prptest(exponent, siglen, bit_array, power_bit_array,
                 d, roundoff = multmod_with_ibdwt(
                     d, s, exponent, siglen, power_bit_array, weight_array)
             # Every L^2 iterations, check the current d value with and independently calculated d
-            if (i != 0 and i % L_2 == 0) or (i %
-                                             L == 0 and (i + L > exponent)):
+            if i != 0 and (i % L_2 == 0 or (
+                    i % L == 0 and i + L > exponent)):
                 prev_d_pow_signal = prev_d
                 for j in range(L):
                     prev_d_pow_signal, roundoff = squaremod_with_ibdwt(prev_d_pow_signal, exponent, siglen,

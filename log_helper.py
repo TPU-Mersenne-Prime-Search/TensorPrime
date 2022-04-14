@@ -6,4 +6,6 @@ def init_logger(filename):
         level=logging.DEBUG, format='[%(threadName)s %(asctime)s]  %(levelname)s: %(message)s', filename=filename)
     console = logging.StreamHandler()
     console.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('[%(asctime)s]  %(levelname)s: %(message)s')
+    console.setFormatter(formatter)
     logging.getLogger().addHandler(console)
