@@ -1,5 +1,6 @@
-from configparser import ConfigParser, Error as ConfigParserError
 import logging
+from configparser import ConfigParser
+from configparser import Error as ConfigParserError
 
 
 def config_read():
@@ -9,8 +10,8 @@ def config_read():
     localfile = "settings.txt"
     try:
         config.read([localfile])
-    except ConfigParserError as e:
-        logging.exception("ERROR reading '{0}' file:".format(localfile))
+    except ConfigParserError:
+        logging.exception(f"ERROR reading {localfile!r} file:")
     if not config.has_section("PrimeNet"):
         # Create the section to avoid having to test for it later
         config.add_section("PrimeNet")
