@@ -194,7 +194,7 @@ def main():
     # working Mersenne prime throws a precision
     # error exception, double the FFT length and try
     # again.
-    siglen = args.fft if args.fft else 1 << max(
+    siglen = args.fft or 1 << max(
         1, int(math.log2(p / (10 if getattr(args, "64_bit") else 2.5))))
     logging.info(f"Using FFT length {siglen}")
 
@@ -472,22 +472,18 @@ gec_d_saved = None
 
 
 def rollback():
+    gerbicz_error_general = "Gerbicz error checking found an error but had nothing to rollback to. Exiting"
     if jnp.shape(gec_s_saved) is None:
-        msg = "Gerbicz error checking found an error but had nothing to rollback to. Exiting"
-        raise Exception(msg)
+        raise Exception(gerbicz_error_general)
     if jnp.shape(gec_d_saved) is None:
-        msg = "Gerbicz error checking found an error but had nothing to rollback to. Exiting"
-        raise Exception(msg)
+        raise Exception(gerbicz_error_general)
     if gec_i_saved is None:
-        msg = "Gerbicz error checking found an error but had nothing to rollback to. Exiting"
-        raise Exception(msg)
+        raise Exception(gerbicz_error_general)
     return gec_i_saved, gec_s_saved, gec_d_saved
 
 
 def update_gec_save(i, s, d):
-    global gec_i_saved
-    global gec_s_saved
-    global gec_d_saved
+    global gec_i_saved, gec_s_saved, gec_d_saved
     gec_i_saved = i
     gec_s_saved = s.copy()
     gec_d_saved = d.copy()
