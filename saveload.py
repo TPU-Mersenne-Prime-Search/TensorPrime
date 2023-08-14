@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 
 import jax.numpy as np
 
@@ -7,7 +7,7 @@ from config import config
 
 # dirname = os.path.dirname(__file__)
 # pathed = os.path.join(dirname, r"saves\save")
-pathed = '.'
+pathed = "."
 extension = ".npy"
 
 
@@ -46,7 +46,7 @@ def save(exponent, siglen, signal, iteration, d=None, d_p=None):
         GECvals = np.zeros((2, siglen))
         GECvals.at[0].set(d)
         GECvals.at[1].set(d_p)
-        packed.push(GECvals)
+        packed.append(GECvals)
 
     # Save data
     np.save(os.path.join(pathed, f"{exponent}-{0}"), packed)
