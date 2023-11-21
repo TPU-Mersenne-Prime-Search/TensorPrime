@@ -7,7 +7,7 @@ Currently due to precision issues with the TPU the known primes we are able to c
 See our project [Wiki](https://github.com/TPU-Mersenne-Prime-Search/TensorPrime/wiki) for more details about the project.
 
 # Quickstart
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/TPU-Mersenne-Prime-Search/TensorPrime/GoogleColabTPU.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/TPU-Mersenne-Prime-Search/TensorPrime/blob/master/GoogleColabTPU.ipynb)
 
 Currently due to precision limitations of the `bfloat16` data type used by the TPU for matrix multiplication operations, the largest known Mersenne prime this program is able to check is `2^4423 - 1`. Because of this the PrimeNet assignments this program supports will not work on the TPU architecture. To run TensorPrime on the TPU, the following steps are recommended.
 
