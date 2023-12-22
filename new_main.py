@@ -379,16 +379,73 @@ def partial_carry(signal, power_bit_array):
 
     return jnp.add(signal, carry_values)
 
+@jit
+# Dynamic Splitting Function
+def dynamic_splitting(fp32_data):
+    """
+    Splits an array of float32 numbers into two arrays of bfloat16 numbers.
+
+    Args:
+    fp32_data (np.array): An array of float32 numbers.
+
+    Returns:
+    tuple: Two arrays of bfloat16 numbers.
+    """
+    # Assuming fp32_data is a numpy array of float32
+    # Convert fp32 to bfloat16 requires numpy version 1.20 or later
+
+    # Step 1: Find the absolute norm of each column of the input matrix to decide s1 and s2
+    s1 = jnp.max(jnp.abs(fp32_data), axis=0)
+    scaled_fp32_data = fp32_data / s1
+
+    # Step 2: Convert the scaled data to bfloat16
+    x1_bfloat16 = scaled_fp32_data.astype(jnp.bfloat16)
+
+    # Step 3: Calculate the residual error and store as x2_bfloat16
+    residual_fp32 = fp32_data - x1_bfloat16.astype(jnp.float32) * s1
+    s2 = jnp.max(jnp.abs(residual_fp32), axis=0)
+    scaled_residual_fp32 = residual_fp32 / s2
+
+    # Step 4: Convert the residual data to bfloat16
+    x2_bfloat16 = scaled_residual_fp32.astype(jnp.bfloat16)
+
+    return x1_bfloat16, x2_bfloat16, s1, s2
+
+@jit
+def mixed_precision_irfft(fp32_data):
+    """
+    Performs inverse rFFT using mixed precision approach.
+    """
+    x1_bfloat16, x2_bfloat16, s1, s2 = dynamic_splitting(fp32_data)
+    irfft_result_1 = jnp.fft.irfft(x1_bfloat16)  # TPU-optimized inverse rFFT implementation
+    irfft_result_2 = jnp.fft.irfft(x2_bfloat16)  # TPU-optimized inverse rFFT implementation
+    combined_result = irfft_result_1.astype(jnp.float32) * s1 + irfft_result_2.astype(jnp.float32) * s2
+
+    return combined_result
+
+@jit
+def mixed_precision_rfft(fp32_data):
+    """
+    Performs inverse rFFT using mixed precision approach.
+    """
+    x1_bfloat16, x2_bfloat16, s1, s2 = dynamic_splitting(fp32_data)
+    rfft_result_1 = jnp.fft.rfft(x1_bfloat16.astype(jnp.float32))  # TPU-optimized inverse rFFT implementation
+    rfft_result_2 = jnp.fft.rfft(x2_bfloat16.astype(jnp.float32))  # TPU-optimized inverse rFFT implementation
+    combined_result = rfft_result_1.astype(jnp.float32) * s1 + rfft_result_2.astype(jnp.float32) * s2
+
+    return combined_result
 
 @jit
 def weighted_transform(signal_to_transform, weight_array):
     weighted_signal = jnp.multiply(signal_to_transform, weight_array)
+    #return mixed_precision_rfft(weighted_signal)
     return jnp.fft.rfft(weighted_signal)
 
 
 @jit
 def inverse_weighted_transform(transformed_weighted_signal, weight_array):
-    weighted_signal = jnp.fft.irfft(transformed_weighted_signal)
+    #weighted_signal = jnp.fft.irfft(transformed_weighted_signal)
+    weighted_signal = mixed_precision_irfft(transformed_weighted_signal)
     return jnp.divide(weighted_signal, weight_array)
 
 
